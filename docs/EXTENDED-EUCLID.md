@@ -1,6 +1,6 @@
 # Extended Euclid ("EUC+"): research and design
 
-Status: design draft (2026-11-03). Target: Digitakt II OS 1.17. Stock file verified:
+Status: design draft (2026-11-03). Target: Digitakt II OS 1.17. Stock file verified (main OS depacked: 3,275,616 bytes, sha256 `a1e7b657…`, matching Elekloader):
 `Digitakt_II_OS1.17.syx`, sha256 `26c22f66…50d5`. This is the exact file Elekloader's
 `digitakt_mk2` profile expects. The firmware itself is never committed (see `.gitignore`).
 
@@ -18,10 +18,14 @@ What we know:
   MIDI-track NOT2–4 locks in Euclid sequences **[V]**.
 - It is set per track. Its trigs show differently from grid trigs (blue). Turning the mode off
   with **FUNC held** converts ("freezes") the generated hits into ordinary grid trigs **[V, forum + release notes]**.
-- It has two pulse generators: **PL1 and PL2** (pulses), **RO1 and RO2** (rotation of each),
-  **TRO** (rotation of the whole track) and a **boolean combine** (OR / XOR / AND / SUB). Track
-  length comes from LEN **[U]**. Modwerk's mk1 "Euclidean" module copies this layout from the DT2.
-  Elektron's spec sheet says "1 × Euclidean sequence generator per track".
+- **Parameters, read from the OS 1.17 image [V]:** `PL1` Pulse Gen 1, `PL2` Pulse Gen 2,
+  `EUC` Euclidean Mode (on/off), `RO1` Rotation Gen 1, `RO2` Rotation Gen 2, Track Rotation,
+  Bool Operator (OR / XOR / AND / SUB; `XOR` and `SUB` sit in the value list beside the
+  retrig rates) and Track Length. The page is named `EUCL` / "Euclidean". In the page list it
+  sits right after `RTRG` "Retrig Parameters" (strings at `0x40242fc4`–`0x4024302c` and `0x402415fd`).
+- **Code anchor [V]:** the C++ lambdas of `Track::recalculateEuclidean(bool)` (strings at
+  `0x401f5d44`). This is where the hits are generated, and phase 1 starts here.
+- Modwerk's mk1 "Euclidean" module copies this layout from the DT2.
 - Parameter locks, conditions and swing apply to the generated hits **[V, release notes]**.
 
 What it lacks compared with a T-1:
