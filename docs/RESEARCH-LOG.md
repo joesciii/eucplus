@@ -66,6 +66,42 @@ What this means:
 - The mk1 sites do not map one to one: the DT2's trig test is `tst.w` on masked words, not the
   mk1's `move.w … and.l`. The `seq-events-dt2` site list has to be made from this code, not copied.
 
+
+## Emulator setup (digikit, verified 2026-11-03)
+
+```sh
+git clone --depth 1 https://github.com/m-dwyer/digikit && cd digikit
+cp Digitakt_II_OS1.17.syx firmware/
+uv sync
+apt-get install libasound2-dev pkg-config            # the daemon's audio crate needs ALSA headers
+uv run python -m tools.emulator.native_emu --daemon --cf-only --build-only firmware/Digitakt_II_OS1.17.syx
+#   -> out/native/target/nogen/release/digi-emud (the GUI build needs astro and is not needed)
+# DSP / paced modes need the ADSP-2156x HWR text (register reset tables):
+curl -o docs/refs/adsp-2156x-hwr.pdf https://docs.ampnuts.ru/analog.com.datasheet/adsp-21566/related_data/adsp-2156x_hwr.pdf
+#   11,954,389 bytes, sha256 e56b2e4e…30ec (the size digikit records; analog.com refuses scripts)
+uv run --with pymupdf python -m tools.devtools.refstext docs/refs/adsp-2156x-hwr.pdf --out out/refs
+uv run python -m tools.emulator.ready dt2 --syx firmware/Digitakt_II_OS1.17.syx
+```
+
+- Drive it with `tools/emu_drive.py` (this repo): load, tap, combo (FUNC+AMP), burst (encoders), shot, log.
+- **Timing:** 132,000 ColdFire instructions per emulated ms. Encoders need bursts of events about 2 ms
+  apart; a single slow event moves a value by one raw step and the display may not change.
+- **ColdFire-only mode does not run the sequencer clock.** PLAY lights up, but the playhead LEDs do
+  not move. Fires seen there are not normal playback. Sequencer tests need `--dsp zero` or the
+  coupled DSP, both from the `emu:ready` snapshot.
+- Stock 1.17 boots to the main UI in about 850M instructions (about 8 s on this host). A patched
+  build loads with `firmware.load {syx, start: cold}`; a patched file cannot be the daemon's startup argument.
+- **Verified in the emulator:** core-dt2 plus hello-marker boots, and the screen differs from stock only
+  in the marker's corner. FUNC + AMP opens the stock Euclid menu (PL1 PL2 LEN EUC / RO1 RO2 TRO OP).
+
+## Probe results (mods/eucplus-dt2 0.0.1, ColdFire-only mode)
+
+- The hook at `0x400d6e10` runs on track 1 with Euclid on (`+1176` = 1). The pattern argument is
+  **`0x41776cb8`**, the same address digikit found as pattern slot 0 on 1.15C.
+- Fire arguments (frame +56…): track, pattern, a per-track buffer (`0x426532b8`), step, a pointer
+  (`0x44f37c94`), two output pointers (alternating between two buffers), `0x450439b0`.
+- With the sequencer clock stopped, every fire reported step 0. To recheck with a running clock.
+
 ## Still to find
 
 1. The fire's caller (pointer table) and the note site (the mk1's `lea (a3,d3.l),a0; moveq #-1`).
