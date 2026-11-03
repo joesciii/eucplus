@@ -233,6 +233,17 @@ Digitakt mk1 mod for its structure. Addresses below are those projects' findings
 | [naturarum/dn2-cfw](https://github.com/naturarum/dn2-cfw) T5.0 | DN2 1.12 | Every stock per-parameter glyph is a frame of an icon strip (`std::vector<Bitmap>`), picked by value (17 fonts, 142 strips); each parameter view has a list of page ids (the Euclid page is id 3 on the DN2) |
 | [complex-ping/overtone](https://github.com/complex-ping/overtone) | DN2 1.12 (binary patcher) | Finished text-grid pages with small graphics (step bars); no UI source |
 | [soejrd/digisophie](https://github.com/soejrd/digisophie) (Digitone port's overlay) | DT1 / DN1 | Gates its overlay on firmware state (brain → screen → shown view), never pixels; redraws only when what it shows changed; yields to stock toasts; per-OS address headers; strict builds |
+| [70b185/Aggregat](https://github.com/70b185/Aggregat) | all Elektron boxes (an index, not a mod) | About 50 rules for agents, each from a community incident (`hardware/AGENT-RULES.md`); per-device facts with evidence tags (`hardware/devices/digitakt-2.md`); a feature-overlap list; an open research map. Adopted from it: the ColdFire encoding and no-firmware-bytes build checks (A42, B7), controls for checks (C8), and the flash procedure in PLAN.md (A2-A4, A11, A12, A17, A23, A36, A40, G5, G6) |
+
+**Sequencer prior art** (from Aggregat's feature-overlap list):
+- On the Digitakt mk1 and Digitone mk1: alternative sequencers DIGISEQ (a per-track sequencer
+  choice on a second TRIG page), DIGISNAKE (after Make Noise René) and TRIG PAGES (TURING).
+- Euclid accents in rytm-mods (Analog Rytm).
+- Scale handling: four implementations on the Octatrack (36 Digitone II scales in PassOS), 35 scales
+  in hugz202's A4 mods, a scale arpeggiator on the Digitone mk1.
+
+On the Digitakt II nothing touches the sequencer yet, so EUC+ would still be the first. DIGISEQ's
+second TRIG page is the closest model for tier C above.
 
 **The UI framework (digikit finding 71, DT2 1.17).**
 - `ViewController` is at `Brain + 0x40`: a `std::list` of views, sentinel at `+0x14`, last node

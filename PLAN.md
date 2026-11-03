@@ -67,8 +67,8 @@ part was found: [docs/RESEARCH-LOG.md](docs/RESEARCH-LOG.md), "v0.2: the UI".
    ahead for the next PLAY now gets the riff's first note.
 7. **Tests:** `e2e_emulator.py` drives only keys and encoders and checks the MIDI notes and the
    screens (list in the mod README). `host_test.c` builds with `-DEUP_HOST`.
-8. **First hardware check (you, optional):** still to do. Flash, check recovery over 5-pin DIN MIDI
-   first, then: FUNC + AMP twice on a Euclid track opens EUC+; ON changes the notes; by ear, that
+8. **First hardware check (you, optional):** still to do. Follow "Flashing a test build" below,
+   then: FUNC + AMP twice on a Euclid track opens EUC+; ON changes the notes; by ear, that
    audio-track repitching works. Photos of the EUC+ page help.
 
 Not done in v0.2 (moved on): the T-1 random gesture (FUNC + turn), COMMIT.
@@ -98,11 +98,36 @@ Addresses moved to `os117.h`; a host UI test and `tools/host_tests.sh`; `-Werror
    - Later, optional: the firmware's own knob icons (tier B); EUC+ as a second stock SEQUENCER page
      (tier C, with storage).
 
+## Flashing a test build
+
+From the community's own incidents, as collected by
+[Aggregat](https://github.com/70b185/Aggregat) (`hardware/AGENT-RULES.md`; its rule numbers in
+brackets):
+
+1. **Rehearse recovery with the stock file first** (A2, A11, A36). Hold FUNC at power-on, press TRIG 4
+   (never TRIG 2 or 3: they erase data, A17), and send the stock 1.17 `.syx` from Transfer's SYSEX
+   TRANSFER page over **5-pin DIN MIDI**. USB is not heard there.
+   - One Digitakt II has been recovered this way, over DIN from a known-good interface
+     (dt2-machine-lab, OS 1.16).
+   - A generic cheap "USB2.0-MIDI" cable (VID 1a86, PID 752d) delivered nothing. Use a known-good
+     interface, and send a stock file through it once before you need it.
+2. **Back up** projects, sounds and samples with Transfer (A3).
+3. **One named build per flash, one change per build** (A12, G5).
+   - I give you the file name, its SHA-256, the four-character version shown on the unit, and the list
+     of what to try.
+   - Keep the stock `.syx` and the last build that worked; never overwrite either.
+4. **Never power off during the update** (A4). "Success" on screen is not proof (A23): check the
+   version after the restart.
+5. **If it hangs:** a ColdFire fault halts the unit until power is cycled, because the watchdog is
+   unused (digikit finding 37). Note any `EXCEPTION` or `V04 M0 P...` text on the screen, power-cycle,
+   and recover with step 1. After **two failed flashes on the same problem we stop** and re-plan (G6).
+6. **Also check after a long power-off** (minutes, not a quick restart): one Octatrack change booted
+   in the emulator and in quick power cycles, then stalled at the logo after minutes off (A40).
+
 ## What I need from you
 
 - **Hardware tests** when a build is ready: flash with Elektron Transfer and report back (photos of
-  the screen help). **Before the first flash, check you can recover:** hold FUNC at power-on,
-  press TRIG 4, and send the stock `.syx` over **5-pin DIN MIDI**. USB does not work for recovery.
+  the screen help). **Before the first flash, rehearse recovery** ("Flashing a test build", step 1).
 - **Decisions:** ~~ON control~~ (decided: its own on/off control on the page). **Next:** the storage
   location (per pattern or per kit, v0.3).
 

@@ -15,6 +15,7 @@ and how to set up a session.
   - `build_eucplus.sh`: build and link.
   - `run_e2e.sh`: the emulator test.
   - `host_tests.sh`: the host tests (engine and pages), strict warnings.
+  - `check_build.py`: ColdFire encodings and no firmware bytes in the built mod (run by the build).
   - `emu_drive.py`: drive the emulator by hand.
   - `hotpatch.py`, `unpack.py`, `maskmatch.py`, `sitemap.py`: analysis tools.
 
@@ -29,3 +30,13 @@ and how to set up a session.
 - Record new firmware findings in `docs/RESEARCH-LOG.md`, with their evidence, before relying on them.
 - Hook code runs at interrupt level: no firmware calls, no allocation, keep it small.
 - Nothing goes to hardware until it passes in the emulator; the user does all flashing.
+- `tools/build_eucplus.sh` must end at `check_build: PASS`: every instruction ≤ 6 bytes (ColdFire), and
+  no stock bytes in the `.elemod`.
+- Every check needs a control that fails when the checker is broken. A skipped test is not a pass:
+  report which tests ran. Never weaken a check to make a test pass.
+- Hardware builds: one change per build, a named file with its SHA-256, a four-character version and a
+  list of what to try (PLAN.md, "Flashing a test build"). After two failed flashes on one problem, stop
+  and re-plan.
+- Community rules and device facts: [Aggregat](https://github.com/70b185/Aggregat)'s
+  `hardware/AGENT-RULES.md` and `hardware/devices/digitakt-2.md` (second-hand: check before relying on
+  them).

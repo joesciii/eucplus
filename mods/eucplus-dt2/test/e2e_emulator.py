@@ -70,7 +70,7 @@ def main():
     def is_open(): return peek8(ui) == 1
     def t1(field): return peek8(cfg + 8 + field)            # track 1's settings (eucplus.h order)
 
-    def screen(name, on):
+    def screen(name, on, expect=True):
         """An EUC+ screen in the stock layout: the stock pattern box, EUC+'s title bar (white, with
         dark text), the page box, the knob in slot A, and the ON switch on the left filled only when
         on. Saved as a PNG."""
@@ -86,8 +86,8 @@ def main():
             open(os.path.join(shots, name + '.png'), 'wb').write(oled_png(f))
         good = pattern_box and bar and layout and switch == bool(on)
         print('  screen %-15s pattern box %s, title bar %s, layout %s, ON switch %s -> %s' % (
-            name, pattern_box, bar, layout, switch, 'PASS' if good else 'FAIL'))
-        return good
+            name, pattern_box, bar, layout, switch, 'PASS' if good == expect else 'FAIL'))
+        return good == expect
 
     def play(ms):
         emu.usb_out(); start = emu.peek32(seq) or 0
@@ -133,6 +133,8 @@ def main():
 
     print('2. open EUC+ from the stock Euclidean page')
     ok &= check('the stock page is not EUC+ yet', not is_open())
+    # the control (a check that cannot fail proves nothing): the screen check refuses the stock page
+    ok &= screen('control-stock', on=False, expect=False)
     combo('FUNC', 'AMP')                                  # a second FUNC + AMP: EUC+
     ok &= check('a second FUNC + AMP opens EUC+', is_open())
     ok &= check('opening does not switch it on (ON = %d)' % t1(0), t1(0) == 0)

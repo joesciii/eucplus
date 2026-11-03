@@ -20,3 +20,4 @@ python3 -m elekloader.patch --stock "$FW" --mod mods/core-dt2/out/core-1.0.elemo
     --mod "$REPO/mods/eucplus-dt2/out/eucplus-$VERSION.elemod" --version EUP1 \
     --out "$WORK/builds/eucplus.syx" | tail -2
 python3 -I "$REPO/tools/unpack.py" "$WORK/elekloader" "$WORK/builds/eucplus.syx" "$WORK/builds/eucplus.main.bin" | tail -1
+python3 -I "$REPO/tools/check_build.py" "$REPO/mods/eucplus-dt2" "$WORK/fw/main_1.17.bin"

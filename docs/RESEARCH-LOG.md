@@ -259,6 +259,37 @@ checked here by drawing from `ev_draw` and reading the frame:
   buf2)`, vtable `0x4021cff0`). The frame `ev_draw` gets has vtable `0x4021cff8` and a second
   pointer at `+0x14` (`0x40966ad8`). They are probably two classes; not followed.
 
+## Build checks and facts from Aggregat (2026-11-03)
+
+[Aggregat](https://github.com/70b185/Aggregat) collects the community's rules and device facts. It is
+second-hand; the facts below are marked as its sources mark them, and nothing in this section is
+used by EUC+ except the two checks.
+
+- **ColdFire encodings [V]:** every instruction in `eucplus.c.o`, `ui.c.o` and `site.s.o` is at most
+  6 bytes (`tools/check_build.py`, run by every build). Why it matters (Aggregat A42, `[hw]`): ColdFire
+  instructions are 2, 4 or 6 bytes. 68000 forms such as `move.l #imm,d16(An)` (8 bytes) and
+  `move.l #imm,abs.L` ran in the emulator and crashed or hung real units. Our compiler and assembler
+  target the ColdFire (`-mcpu=54455`); the check catches hand-encoded bytes.
+- **No firmware bytes in the `.elemod` [V]:** `check_build.py` finds no 16-byte run of the `.elemod` in
+  the stock main OS. Its control, stock bytes against stock, finds runs. The linked image does
+  repeat stock bytes in 10 places: the scale names ("Ionian", "Harmonic Min", "MIXO AEOL ...", as the
+  firmware spells them at `0x4025db0d`), and EUC+'s calls of `0x40041d18` / `0x4004abb8`, compiled
+  the same as the firmware's own (`0x4001e2f2`). Elekloader stores such runs as references to the
+  user's file, so they are not in the `.elemod` (Aggregat B7).
+- **A ColdFire fault halts the unit until power is cycled** `[doc]` (digikit finding 37): the default
+  exception handler prints `EXCEPTION` (vector, format, PC, stack words) and halts with interrupts
+  masked; the watchdog is unused.
+- **Recovery has been used on a Digitakt II** `[hw]` (dt2-machine-lab, 2026-10-06, OS 1.16): the
+  startup menu over DIN MIDI from a known-good interface restored the unit after a crashing build.
+  A generic USB-MIDI cable adapter (VID 1a86, PID 752d) delivered nothing.
+- **Memory** `[emu]` (digitakt-ii-research and dt2-machine-lab, DT2 **1.16**; resolve on 1.17 first):
+  - the OS clears `0x40312000-0x47e28470` at reset;
+  - the firmware heap is a 32 MiB buddy heap at `0x44f39c40`;
+  - `malloc` is `0x4011e674`, `free` is `0x4011e87a`;
+  - the flash cave `0x403117c4-0x40312000` survives boot and has five users;
+  - Elekloader's RAM `0x47f00000-0x47f40000` lies inside digikit's `cf.expansion`, so EUC+ does not
+    combine with digikit's runtime.
+
 **Not working in this emulator:** `mem.cf.peek` reads SRAM (0x80000000-0x80010000) as 0. A
 `mem.cf.poke` into firmware code or data at 0x40800000 crashed the session (do not poke markers
 into unknown memory; `state.save` plus `tools.emulator.snapread` reads all memory, by 1 MB pages).
