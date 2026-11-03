@@ -73,6 +73,12 @@ part was found: [docs/RESEARCH-LOG.md](docs/RESEARCH-LOG.md), "v0.2: the UI".
 
 Not done in v0.2 (moved on): the T-1 random gesture (FUNC + turn), COMMIT.
 
+**v0.2 screens refresh (2026-11-03):** the pages now use the stock parameter pages' layout and the
+firmware's fonts (stock header's pattern box, EUC+ title bar, page box, radius-8 knobs on the stock
+grid, toggles, the value in the title and label while turning, the ON switch where LEV sits). From
+a survey of the Digitakt II / Digitone II mods that draw UI (docs/EXTENDED-EUCLID.md, section 5).
+Addresses moved to `os117.h`; a host UI test and `tools/host_tests.sh`; `-Werror` builds.
+
 ## v0.3 tasks
 
 1. **Storage:** decide where the settings live (per pattern, preferred, or `core_kitdata`), find
@@ -81,6 +87,16 @@ Not done in v0.2 (moved on): the T-1 random gesture (FUNC + turn), COMMIT.
    RAMP (find the retrig lock slots, research log "Still to find" 4).
 3. The T-1 random gesture: hold FUNC and turn a parameter to set its random amount.
 4. Keep the end-to-end test driving the real UI for each new parameter.
+5. From the survey (docs/EXTENDED-EUCLID.md, section 5), in this order:
+   - Tell the SEQUENCER page from firmware state: the top view's vtable and page number
+     (`Brain + 0x40`, a page view's slot `+0x88`), replacing the pixel signature; step aside when a
+     dialog is on top.
+   - A stock-vs-EUC+ screen comparison in the e2e test (the same keys on both images, frames
+     identical until the second FUNC + AMP).
+   - A bit-exact engine regression check against a git revision.
+   - A four-character OS version per hardware test build.
+   - Later, optional: the firmware's own knob icons (tier B); EUC+ as a second stock SEQUENCER page
+     (tier C, with storage).
 
 ## What I need from you
 

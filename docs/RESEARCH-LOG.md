@@ -197,8 +197,9 @@ the DT2's `fillrect` (0x401131ae) and `blit` (0x40114168) are the same 0xfba apa
 
 **Fonts** (pointers the stock pages pass to `textf` / `drawstr`; counted over every caller):
 `0x402aa570` is the 5-pixel capitals of the stock labels ("PL1"), header `{5, 5, ...}`;
-`0x402a9be0` is a 6-pixel upper- and lower-case font, header `{3, 0x10006, ...}`. `0x44d2e6f4`
-(RAM, passed 8 times) draws nothing when passed as a font. **[V]** by drawing.
+`0x402a9be0` is a 6-pixel upper- and lower-case font, header `{3, 0x10006, ...}`. **[C]** (see
+"v0.2 screens" below): `0x44d2e6f4` is a font *object*, the narrow font; it drew nothing with
+`drawstr`, but draws with `textf`. **[V]** by drawing.
 
 **The active track.** `0x40077308` is the track select (TRK + trig): it clamps the track to
 0-15, gets `ctx = 0x40198b7e()` (a lazily made singleton, `*0x44f370a0`), `sel = 0x40041d18(ctx)`
@@ -222,6 +223,41 @@ while the run state is already 0, and PLAY sends that event at once (no new fire
 was the v0.1 test's "first note queued before PLAY". EUC+ treats a fire while stopped as the
 riff's first note. **[V]**: the EUC+ log gets one record at STOP (step 0) and none at PLAY, and
 with EUC+ on the first note sent after PLAY is the riff's first.
+
+## v0.2 screens: stock text and layout (verified in the emulator, 2026-11-03)
+
+Leads from toonst/digi_macro and digikit's finding 71 (docs/EXTENDED-EUCLID.md, "Prior art"),
+checked here by drawing from `ev_draw` and reading the frame:
+
+- **`textf` `0x40113dc8(bmp, font, x, y, flags, fmt, ...)`** draws with the stock **font objects**
+  and returns the width drawn. `y` is the text's bottom row. Flags: 2 centres on `x`, 4 right-aligns
+  to `x`, `0x18` draws the text dark in a white box one pixel bigger.
+- **Font objects** (RAM, `0x18` apart), as drawn with `textf`:
+
+  | Address | Font |
+  |---|---|
+  | `0x44d2e6ac` | 16 pixels, bold |
+  | `0x44d2e6c4` | 8 pixels |
+  | `0x44d2e6dc` | 6–7 pixels, bold |
+  | `0x44d2e6f4` | the narrow font, 3-pixel letters, lower case too (the stock page box and lists) |
+  | `0x44d2e70c` | the stock label font, 5-pixel capitals (lower case as small capitals) |
+
+  `0x44d2e724` and the next three draw nothing. They are RAM objects the firmware builds at boot;
+  digi_macro uses `0x44d2e70c` and `0x44d2e6f4` on a unit, so their addresses held across boots
+  there.
+- **`0x402a9be0` is a font record, not an object:** `textf` draws nothing with it, and `drawstr`
+  (`0x40113d60`) draws it. EUC+ titles its bar this way.
+- **The stock parameter page's geometry** (FLTR, dumped; rows from the top):
+  - header rows 0–9 (pattern box `x 0–14`; title bar `x 17–127`, rows 0 and 9 cut to `x 18–126`);
+  - track box `x 0–14`, rows 13–36, corners cut;
+  - LEV fader `x 0–14`, rows 40–56, label at 59;
+  - labels at rows 32–36 and 59–63, centred on `x 33, 59, 85, 111`;
+  - knobs of radius 8 centred on the same columns, rows 21 and 48, with a pointer from the
+    centre (ENV.D at 111, 48).
+- **Bitmap:** EUC+ reads `ev_draw`'s Bitmap pixels at `+0x10` (its page signature depends on it and
+  works). digikit's finding 71 reads the screen Bitmap's data at `+0x14` (ctor `(this, w, h, buf,
+  buf2)`, vtable `0x4021cff0`). The frame `ev_draw` gets has vtable `0x4021cff8` and a second
+  pointer at `+0x14` (`0x40966ad8`). They are probably two classes; not followed.
 
 **Not working in this emulator:** `mem.cf.peek` reads SRAM (0x80000000-0x80010000) as 0. A
 `mem.cf.poke` into firmware code or data at 0x40800000 crashed the session (do not poke markers

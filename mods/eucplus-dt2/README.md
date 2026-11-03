@@ -9,11 +9,14 @@ device. It is an Elekloader linkable mod (format 2), built on `core` (core-dt2 1
 ## Using it
 
 1. On a track, open the stock Euclidean page with **FUNC + AMP** and switch **EUC** on, as usual.
-2. Press **FUNC + AMP again** on that page: the EUC+ pages open (the title bar reads `EUC+ NOTES`).
-   Opening them changes nothing: the track keeps playing stock Euclid notes.
-3. Turn **H (ON)** to switch EUC+ on for this track. The title bar shows `ON` in a black box while
-   EUC+ drives the track, and `OFF` while stock does. Every EUC+ page shows it.
-4. Edit with encoders A–H. **LEFT / RIGHT** change page. **NO**, or **FUNC + AMP**, goes back to
+2. Press **FUNC + AMP again** on that page: the EUC+ pages open (the title bar reads
+   `EUC+ Notes (1/2)`). Opening them changes nothing: the track keeps playing stock Euclid notes.
+3. Turn **H (ON)** to switch EUC+ on for this track. The switch on the left, where stock pages have
+   the LEV fader, is filled and reads `ON` while EUC+ drives the track, and reads `OFF` while stock
+   does. Every EUC+ page shows it.
+4. Edit with encoders A–H: while a knob turns, the title shows its name and value
+   (`Scale: Phrygian`) and the value replaces its label for 1.5 s, as on the stock pages.
+   **LEFT / RIGHT** change page. **NO**, or **FUNC + AMP**, goes back to
    the stock Euclidean page. A page key (SRC, FLTR, AMP, FX, MOD) leaves EUC+ for that page.
    PLAY, STOP, RECORD, TRK + trig (the pages follow the active track), the trig keys and the LEVEL
    encoder keep working while EUC+ is open.
@@ -65,6 +68,10 @@ parameter locks gets a note chosen by EUC+ instead of the track's NOTE:
   send the note.
 - Steps with p-locks, tracks without Euclid or with EUC+ off, and everything else play as stock.
 
+The screens use the stock pages' layout (the stock header's pattern box, the page box, knobs of
+radius 8 on the stock grid) and the firmware's own fonts; see docs/EXTENDED-EUCLID.md, "The EUC+
+screens".
+
 It hooks the end of the two step-fire functions (audio `0x400d6982`, MIDI `0x400d6e88`) and writes
 only the event's note byte (`+38`). The pages use core's `ev_tick`, `ev_draw`, `ev_key` and
 `ev_enc`. See [docs/RESEARCH-LOG.md](../../docs/RESEARCH-LOG.md), "v0.2: the UI", for how the
@@ -87,15 +94,22 @@ bash tools/run_e2e.sh          # the emulator test below; must print RESULT: PAS
 
 ## Tests
 
-- `test/host_test.c`: the note logic on the host
-  (`cc -O1 -DEUP_HOST -o t test/host_test.c eucplus.c && ./t`).
+- `bash tools/host_tests.sh [PREVIEW_DIR]` (repo root) builds and runs both host tests with
+  `-Wall -Wextra -Werror`:
+  - `test/host_test.c`: the note logic.
+  - `test/ui_host_test.c`: the pages (`ui.c`) on a 128 × 64 raster: what takes a key and what
+    passes, ranges, page changes, that opening and closing never change ON, and where the screens
+    put things (the stock pattern box untouched, the title bar, page box, knobs, the ON switch).
+    With PREVIEW_DIR it writes the screens as `.pbm` (a stand-in font; the device uses the
+    firmware's).
 - `test/e2e_emulator.py`: digikit's emulator with a paced clock, driven only through keys and
   encoders (the pattern's KB SCALE / ROOT are the only pokes). Track 1 is a MIDI Euclid track
   (PL1 = 5), A pentatonic minor. It checks the USB MIDI notes and the EUC+ screens: stock with the
   defaults; still stock with the EUC+ page open; ON on the page gives in-scale EUC+ notes that
   repeat every PLEN passes and restart from the first bar after STOP / PLAY; PTCH +2 moves the riff
   two degrees; SCL IONI gives A major and ROOT C gives C major; LOCK off with VAR 64 changes the
-  riff; ON off gives stock notes again; NO and FUNC + AMP close and reopen it. Screens are saved to
+  riff; ON off gives stock notes again; NO and FUNC + AMP close and reopen it. Each EUC+ screen is
+  checked (stock pattern box, title bar, page box and knob, the ON switch) and saved to
   `/tmp/digitorsion-work/shots`. Result (2026-11-03): `RESULT: PASS`, every check.
 
 The build also cold-boots to the main screen in the emulator.

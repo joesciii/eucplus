@@ -81,10 +81,11 @@ dice roll on every step.** You get a riff you can keep, nudge or release.
 - **With the stock SEQUENCER (Euclid) menu open, press [FUNC] + [AMP] again** to switch to EUC+.
   Press it once more, or [NO], to go back. It's the same gesture you already use, pressed twice.
 - Fallback if that combination is taken: [FUNC] + [RIGHT] inside the menu.
-- How it works: EUC+ needs to know the Euclid view is on top. `core_view_top` exists only in core
-  1.1 (not in core-dt2 1.0, which we use), so v0.2 tracks it from `ev_key` (FUNC + AMP opens it)
-  or finds the view object. `ev_key` takes the second [FUNC] + [AMP]. EUC+ then draws over the
-  view with `ev_draw` and takes the encoders through `ev_enc`.
+- How it works (v0.2): `ev_draw` recognises the stock page by a signature of its two label rows,
+  `ev_key` takes the second [FUNC] + [AMP], EUC+ draws over the page with `ev_draw` and takes the
+  encoders through `ev_enc` (research log, "v0.2: the UI"). Key tracking could not work (NO does
+  not leave the page) and the title bar shows the last parameter edited. A firmware-state check
+  (the top view's vtable and its page number, "Prior art" below) would replace the pixels.
 - EUC+ pages go left and right with [LEFT] / [RIGHT].
 
 ### Pages (encoders A–H, the stock layout)
@@ -134,6 +135,33 @@ parameters show a dot; locked ones show a filled dot.
 **COMMIT:** [FUNC] + [YES] on any EUC+ page writes the current result into p-locks (NOTE / NOT2–4,
 VEL, RTRG) on the stock Euclid trigs. Combined with stock's FUNC + EUC-off, you can bake it into a
 grid sequence.
+
+### The EUC+ screens (v0.2, `ui.c`)
+
+They are drawn in the stock parameter pages' geometry, measured on the stock FLTR and SEQUENCER
+pages (rows from the top, 0-63):
+
+| Part | Stock | EUC+ |
+|---|---|---|
+| Header, rows 0-9 | the pattern box `x 0-14`, a white title bar `x 17-127` with cut corners | the pattern box stays stock; EUC+ draws the bar: `EUC+ Notes (1/2)` on the left in the 6-pixel title font, `T1` on the right. While a knob turns: its long name and value (`Scale: Phrygian`), as stock shows `Pulses Gen 1: 5` |
+| Page box, `x 0-14`, rows 13-36 (corners cut) | the machine and track (`SMP` / `1`) | `EUC` in the narrow font, the track number |
+| Under it, rows 40-56 | the LEV fader, label `LEV` at 59 | **EUC+'s ON switch**: a box filled when on, `ON` / `OFF` under it. On every page, so it is always plain whether EUC+ drives the track |
+| Knob grid | centres `x 33, 59, 85, 111`, rows 21 and 48; radius 8, a pointer from the centre over ±135° (up is the middle); labels at rows 32 and 59 | the same. Numbers are knobs; a list (PHRS, SCL, ROOT) shows its short value where the knob would be; ON and LOCK are toggles (a 17 × 9 rounded box, filled with the knob on the right when on) |
+| Turning a knob | the value in the title | the same, and the value inverted in the label's place for 1.5 s (45 ticks), then the label again |
+
+Text is the firmware's: `textf` (`0x40113dc8`) with the stock label font object (5-pixel
+capitals) and the narrow font object, centred or right-aligned by its flags; the title through
+the plain drawer with the menus' 6-pixel font record. All drawing goes through a canvas (fill and
+text callbacks), so `test/ui_host_test.c` renders the same code on the host and checks where things
+are. Firmware addresses are in `os117.h`.
+
+Later, two steps closer to stock (not done):
+- **B:** blit the firmware's own knob and toggle icons (its icon strips, `0x40114168`), once they are
+  found on the Digitakt II (found on the Digitone II, "Prior art" below).
+- **C:** make EUC+ a second page of the stock SEQUENCER view (a `ParameterPageView`, as digikit's
+  effect pages are): the firmware would draw it, and the second [FUNC] + [AMP] would be its own
+  page flip. It needs page and parameter rows whose values live in the kit, so it goes with the
+  storage decision (v0.3).
 
 ### Engine
 
@@ -191,3 +219,59 @@ Digitakt II projects listed:
 - **Tools:** DigiSplash-II (boot logo) and lalzart's research notes for 1.15C.
 
 **None of them touch the sequencer.** EUC+ and `seq-events-dt2` would be the first.
+
+## 5. Prior art for UI, structure and tests (survey, 2026-11-03)
+
+Read for v0.2's screens: the Digitakt II / Digitone II mods that draw their own UI, and one
+Digitakt mk1 mod for its structure. Addresses below are those projects' findings (most marked
+"read once" there); the ones EUC+ uses were checked here and are in the research log.
+
+| Project | Device | What it teaches |
+|---|---|---|
+| [toonst/digi_macro](https://github.com/toonst/digi_macro) | DT2 1.17, DN2 1.12 (Elekloader, its own core-dt2 1.1 fork) | Screens in the stock geometry (knob grid, page box, MODULATION SETUP layout, list with scroll bar); the stock text routine and font objects; the header message; the view stack to step aside for dialogs; the stock encoder filter; the stock naming screen; a canvas so screens render and are checked on the host, with PNG previews |
+| [m-dwyer/digikit](https://github.com/m-dwyer/digikit) findings 50, 61, 64, 71 | DT2 1.17 (DN2 pairs) | A map of the UI framework (view manager, View vtable, drawing primitives, menus, MenuItem, NameView); effect pages that are real stock `ParameterPageView` pages (a page-descriptor row, the page list) |
+| [naturarum/dn2-cfw](https://github.com/naturarum/dn2-cfw) T5.0 | DN2 1.12 | Every stock per-parameter glyph is a frame of an icon strip (`std::vector<Bitmap>`), picked by value (17 fonts, 142 strips); each parameter view has a list of page ids (the Euclid page is id 3 on the DN2) |
+| [complex-ping/overtone](https://github.com/complex-ping/overtone) | DN2 1.12 (binary patcher) | Finished text-grid pages with small graphics (step bars); no UI source |
+| [soejrd/digisophie](https://github.com/soejrd/digisophie) (Digitone port's overlay) | DT1 / DN1 | Gates its overlay on firmware state (brain → screen → shown view), never pixels; redraws only when what it shows changed; yields to stock toasts; per-OS address headers; strict builds |
+
+**The UI framework (digikit finding 71, DT2 1.17).**
+- `ViewController` is at `Brain + 0x40`: a `std::list` of views, sentinel at `+0x14`, last node
+  (the top) at `+0x18`, a node's View at `+8`, the redraw byte at `+0x20`.
+- digi_macro reads the top view's vtable to tell its base page from FUNC's and TRK's overlays and
+  from anything else (a dialog, the naming screen), and then neither draws nor takes keys.
+- A `ParameterPageView` keeps its page ids in a vector (`+0x7c` / `+0x80`).
+- The page table is RAM `0x4293ba94` (33 rows of `0x2c`: name, title, nine parameter codes), read
+  only through `0x400c898a`.
+- A page view's vtable slot `+0x88` returns its page number.
+
+  Together these could tell the SEQUENCER page from firmware state instead of pixels.
+- **Drawing:**
+  - `textf` `0x40113dc8` flags: 1 the proportional path, 2 centre, 4 right-align, 8 invert the box
+    after, 0x10 clear the box before (0x18: inverted text in a box, checked here),
+    0x20 centre vertically, 0x40 bottom-align.
+  - Text width `0x4011467a(font, maxlen, std::string *)`.
+  - Scroll bar `0x401143f2`.
+  - Invert rect `0x401132c0`.
+  - Blit `0x40114168`.
+- **The header message:** `UIStates` (`0x401998c0`) and `0x4005b23a(ui, fmt, ...)`. That is how stock
+  shows "Filter (1/2)" or "Ptn reloaded"; up to 32 characters, with a timeout.
+- **Stock screens and views to reuse:** `NameView` (a text entry, pushed with `0x4011c08a`); `Menu`
+  and `MenuItem` (lists, value rows); the encoder filter (stock acceleration, coarse when pushed).
+- **Elsewhere:** a core-dt2 1.1 with key LEDs (`ev_key_leds`), frame-time parameter values and
+  kit / project storage exists in toonst's Elekloader fork (not upstream on 2026-11-03). Relevant to
+  v0.3 storage.
+
+**Methods worth keeping (adopted in v0.2 where marked).**
+- Firmware addresses in one header per OS (**adopted:** `os117.h`).
+- A canvas between the drawing code and the firmware, so the screens are tested on the host
+  (**adopted:** `test/ui_host_test.c`).
+- Strict builds that fail loudly (**adopted:** `-Wextra -Werror`, `tools/host_tests.sh`, and
+  `build_eucplus.sh` prints the compiler's errors).
+- A stock-vs-mod screen comparison: the same key script on the stock and the modded image, with
+  frames identical until the mod's own gesture. That proves "off by default" (to do).
+- A bit-exact regression check of the engine against a git revision (`git archive` of the old
+  `eucplus.c`, the same corpus, compare hashes) before refactoring the note maths (to do).
+- A four-character OS version per hardware test build, so device reports name a build (to do:
+  bump `EUP1` per build).
+- Redraw only when what the page shows changed; step aside for stock toasts and dialogs (to do,
+  with the view-stack check).

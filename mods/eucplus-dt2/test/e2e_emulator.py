@@ -19,8 +19,8 @@ sets the pattern to A pentatonic minor, and checks over USB MIDI, driving only k
   6. RANDOM page (RIGHT), LOCK off and VAR 64: notes stay in the scale and the riff changes.
   7. ON off on the page: stock notes again. NO closes EUC+ (the stock page is back), and FUNC + AMP
      on the stock page opens it again, still off.
-Each EUC+ screen is checked (white title bar, ON shown as a black box in it only when on) and
-saved as a PNG in SHOT_DIR.
+Each EUC+ screen is checked (the stock pattern box, EUC+'s title bar, the page box and a knob, and
+the ON switch filled only when on) and saved as a PNG in SHOT_DIR.
 """
 import json, os, sys
 
@@ -71,16 +71,22 @@ def main():
     def t1(field): return peek8(cfg + 8 + field)            # track 1's settings (eucplus.h order)
 
     def screen(name, on):
-        """The EUC+ screen: a white title bar, ON's black box in it only when on. Saved as a PNG."""
+        """An EUC+ screen in the stock layout: the stock pattern box, EUC+'s title bar (white, with
+        dark text), the page box, the knob in slot A, and the ON switch on the left filled only when
+        on. Saved as a PNG."""
         run(100)
         _, f = emu.frame()
         px = lambda x, y: (f[(7 - y // 8) + 8 * x] >> (y % 8)) & 1     # y = 0 at the top
-        bar = all(px(x, 0) and px(x, 8) for x in range(128))
-        box = all(not px(x, 1) for x in range(103, 125))
+        pattern_box = sum(px(x, y) for x in range(15) for y in range(10)) > 40
+        bar = all(px(x, 0) and px(x, 9) for x in range(18, 127)) and \
+            sum(1 - px(x, y) for x in range(20, 100) for y in range(2, 8)) > 20
+        layout = px(7, 13) and px(7, 36) and px(33, 13)                # page box, knob A
+        switch = all(px(x, y) for x in range(4, 11) for y in range(42, 55))
         if shots:
             open(os.path.join(shots, name + '.png'), 'wb').write(oled_png(f))
-        good = bar and box == bool(on)
-        print('  screen %-14s title bar %s, ON box %s -> %s' % (name, bar, box, 'PASS' if good else 'FAIL'))
+        good = pattern_box and bar and layout and switch == bool(on)
+        print('  screen %-15s pattern box %s, title bar %s, layout %s, ON switch %s -> %s' % (
+            name, pattern_box, bar, layout, switch, 'PASS' if good else 'FAIL'))
         return good
 
     def play(ms):

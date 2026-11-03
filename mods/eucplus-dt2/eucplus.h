@@ -3,6 +3,7 @@
 #ifndef EUCPLUS_H
 #define EUCPLUS_H
 #include <stdint.h>
+#include "os117.h"
 
 #define TRACKS  16
 #define SCALES  36      /* the KB SCALE list after CHROMATIC (35) and a spare chromatic */
@@ -42,14 +43,6 @@ struct eup_cfg {
 };
 
 extern struct eup_cfg eup_cfg;
-
-/* The sequencer's run state (OS 1.17): 0 stopped, 1 playing, 2 paused (docs/RESEARCH-LOG.md) */
-#ifdef EUP_HOST
-extern volatile int32_t eup_host_seq_run;      /* test/host_test.c */
-#define EUP_SEQ_RUN     eup_host_seq_run
-#else
-#define EUP_SEQ_RUN     (*(volatile int32_t *)0x43164f94)
-#endif
 
 /* The UI task tells the engine that the sequencer is stopped: each track's phrase and random
  * sequence start again from the top at its next fire. */

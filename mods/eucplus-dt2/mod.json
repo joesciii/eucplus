@@ -14,7 +14,9 @@
   "ui.c"
  ],
  "cflags": [
-  "-Os"
+  "-Os",
+  "-Wextra",
+  "-Werror"
  ],
  "sites": [
   {
