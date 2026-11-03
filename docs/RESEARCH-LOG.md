@@ -30,9 +30,12 @@ Toolchain: Ubuntu `gcc-m68k-linux-gnu` / `binutils-m68k-linux-gnu` 13.3 (apt). F
 
 - The WebFetch tool cannot resolve some hosts even with full network access. `curl` through
   the proxy works.
-- The permission check allowed running Elekloader's unpacker after the user's go-ahead. It
-  **blocked** `uv sync` in digikit ("code from external"), which the emulator needs. It needs an
-  explicit permission rule.
+- The automatic permission check blocks running downloaded code (`uv sync` in digikit) unless a
+  permission rule allows it. The rules are in `.claude/settings.json` (uv, cargo build,
+  `python3 -I`, `python3 -m elekloader`). Edits to that file by Claude are refused, so the user
+  adds new rules.
+- `tools/setup_env.sh` rebuilds the whole environment in a fresh session, and `tools/run_e2e.sh`
+  runs the test.
 
 ## The Digitakt II step fire (OS 1.17) [D]
 
@@ -43,9 +46,9 @@ the DT2. 76 of 446 six-instruction shingles fall in `0x400d6800`–`0x400d6c00`.
 |---|---|---|
 | audio fire, entry | `0x4006f4be` | **`0x400d6982`** (`lea -52(sp)`, `movem d2-d7/a2-a6`) |
 | MIDI fire, entry | `0x4006f846` | **`0x400d6e88`** (same shape) |
-| direct callers | — | none: reached through a pointer (to find) |
+| callers | — | `jsr` at `0x400d73b4` / `0x400d73fc` and `0x400d8200` / `0x400d821a` (the per-track loop at `0x400d81b0`, below) |
 | track record stride | 911 (`d3 = 911·track`) | **1701** (`mulsl #1701`) |
-| args after prologue | step `76(sp)`, event `80(sp)` | track `56(sp)`, pattern `60(sp)`, step `68(sp)`, event `72(sp)` |
+| args after prologue | step `76(sp)`, event `80(sp)` | track `56(sp)`, pattern `60(sp)`, record `64(sp)`, playing step `68(sp)`, event `72(sp)` (0: allocate), `76(sp)`, out `80(sp)` |
 | step word | `pattern + 911·t + 2·step` | `pattern + 1701·t + 2·step` (`a5 = 1701·t`) |
 | trig bit / skip bit | `0x0001` / `0x0004` | the same: `0x0001` / `0x0004` |
 | SYN default bit | `0x0080`, override `0x0800` | the same: `bset #7` when `+1154 & 0x80` and step bit 11 is clear |
@@ -100,7 +103,8 @@ uv run python -m tools.emulator.ready dt2 --syx firmware/Digitakt_II_OS1.17.syx
   **`0x41776cb8`**, the same address digikit found as pattern slot 0 on 1.15C.
 - Fire arguments (frame +56…): track, pattern, a per-track buffer (`0x426532b8`), step, a pointer
   (`0x44f37c94`), two output pointers (alternating between two buffers), `0x450439b0`.
-- With the sequencer clock stopped, every fire reported step 0. To recheck with a running clock.
+- With the sequencer clock stopped, every fire reported step 0. Explained: the step is the playhead
+  byte, which does not move without the clock. With the paced clock, steps run 0, 4, 7, 10, 13 for PL1 = 5.
 
 
 ## The fire's caller and the pattern (verified 2026-11-03)

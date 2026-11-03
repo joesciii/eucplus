@@ -72,15 +72,18 @@ dice roll on every step.** You get a riff you can keep, nudge or release.
    stock Euclid keeps its normal note behaviour until you enter EUC+ and switch it on for that track.
    EUC+ only changes the hits as each step plays. With EUC+ off, the track is exactly stock. Pattern data changes only when you press COMMIT.
 2. **It is a second layer of the stock SEQUENCER menu.**
-3. **It works in the Digitakt II's own terms.** Scale and root come from the track's KB SCALE / ROOT NOTE.
+3. **It works in the Digitakt II's own terms.** Scale and root come from the pattern's KB SCALE / ROOT NOTE
+   (one setting per pattern).
    Repeats use the trig's own retrig. Chords use NOT2–4 on MIDI tracks.
 
 ### Entry
 - **With the stock SEQUENCER (Euclid) menu open, press [FUNC] + [AMP] again** to switch to EUC+.
   Press it once more, or [NO], to go back. It's the same gesture you already use, pressed twice.
 - Fallback if that combination is taken: [FUNC] + [RIGHT] inside the menu.
-- How it works: `core_view_top` (core 1.1) tells us the Euclid view is on top. `ev_key` takes the
-  second [FUNC] + [AMP]. EUC+ then draws over the view with `ev_draw` and takes the encoders through `ev_enc`.
+- How it works: EUC+ needs to know the Euclid view is on top. `core_view_top` exists only in core
+  1.1 (not in core-dt2 1.0, which we use), so v0.2 tracks it from `ev_key` (FUNC + AMP opens it)
+  or finds the view object. `ev_key` takes the second [FUNC] + [AMP]. EUC+ then draws over the
+  view with `ev_draw` and takes the encoders through `ev_enc`.
 - EUC+ pages go left and right with [LEFT] / [RIGHT].
 
 ### Pages (encoders A–H, the stock layout)
@@ -93,9 +96,9 @@ dice roll on every step.** You get a riff you can keep, nudge or release.
 | C | PHRS | CAD1–4, SAW, TRI, SINE, PULS, RAND |
 | D | PLEN | phrase length 1/2/4/8/16/32/64 bars |
 | E | HARM | move one pool note up or down a degree (hysteretic, like the T-1) |
-| F | SCL | FOLLOW (the track's KB SCALE) or one of the 36 scales |
+| F | SCL | FOLLOW (the pattern's KB SCALE) or one of the 36 scales |
 | G | ROOT | FOLLOW or C…B |
-| H | NMOD | ON/OFF: note generation for this track |
+| H | ON | EUC+ on/off for this track (off by default; recommended over switching on when the page opens; user to confirm) |
 
 **Note pool:** hold [FUNC] on the NOTES page and the 16 [TRIG] keys become the scale-degree keyboard
 (only in-scale notes lit), as on the T-1's Pitch view. The default pool is root, 3rd and 5th.
@@ -134,41 +137,45 @@ grid sequence.
 ### Engine
 
 ```
-stock Euclid (recalculateEuclidean) ─► pattern trigs ─► step fire
-   └─ seq-events-dt2 ─► EUC+:
-        ev_gen_trig   PROB (pulses only / all)
-        ev_fire_notes PTCH+HARM pool → PHRS×RNGE → VOIC/STYL → scale(KB SCALE, ROOT) → note(s)
-        ev_fire_vel   ACC × GRV
-        ev_fire_locks REP/RTIM/RAMP → retrig locks
-UI: core_view_top + ev_key/ev_enc/ev_draw     storage: per pattern (pref.) / core_kitdata
+stock Euclid (recalculateEuclidean) ─► pattern trigs ─► step fire (audio 0x400d6982 / MIDI 0x400d6e88)
+   └─ hook at the fire's end (v0.1: 0x400d6e10 / 0x400d7234) ─► eup_fire(event, track, pattern, step, src):
+        note   PTCH + pool → PHRS×RNGE → random → scale(KB SCALE, ROOT) → event byte +38   [v0.1, done]
+        vel    ACC × GRV → event byte +39                                                [v0.3]
+        prob   skip a hit (clear the event)                                              [v0.3, site to find]
+        repeat REP/RTIM/RAMP → retrig locks                                              [v0.3, slots to find]
+UI: ev_key/ev_enc/ev_draw (core-dt2 1.0)     storage: per pattern (pref.) / core_kitdata [v0.3]
 ```
+A general `seq-events-dt2` (the mk1's event API) can wrap these hooks later, for upstream.
 
 - **Random sequences:** for each track and assigned parameter, 16 signed bytes. They are seeded
   from (SEED, track, parameter). At each step boundary (Random Rate or per cycle) an unlocked
   sequence re-rolls each value with chance VAR. A locked one never changes. Pattern restart
   resets the phase, as T-1 retriggers do.
-- **Note maths:** `degree = pool[(hit + phrase(t)·RNGE) mod |pool|] + PTCH + rnd`, then `note = ROOT +
-  scale[degree mod n] + 12·(degree div n)`, relative to the trig's NOTE. On audio tracks this
+- **Note maths (as built in v0.1):** with `k = (pass mod PLEN)·128 + src` (`src` = the hit's index in
+  the pass), `degree = PTCH + pool[k mod |pool|] + phrase(pos)·RNGE/64 + rnd[k]·RAMT/127`, then
+  `note = NOTE + ROOT + scale[degree mod n] + 12·(degree div n)`, folded into 36–84 on audio tracks. On audio tracks this
   pitches the sample by semitones. On MIDI tracks it is the real note, with NOT2–4 offsets for VOIC.
 - **Storage:** about 24 bytes per track (pool mask 2, 12 params, random amounts and lock bits)
   plus 16 B × assigned sequences. Per-pattern storage is the target, so it follows patterns as
   stock Euclid does. Whether there is room is a phase-1 question. The fallback is a compact
   layout in `core_kitdata` (191 B per kit, shared by all mods), with sequences regenerated from SEED.
 
-### Open questions (phase 1, firmware RE)
-1. The fire path: `seq-events` sites on 1.17 (porting `seq-events-dt1`). Do Euclid-generated trigs
-   take exactly the grid fire path? Expected yes, because they are computed into the track.
-2. Retrig: the lock slots for RTRG, rate and VFAD, and whether a fire-time lock is honoured.
-3. Where the pattern keeps per-track KB SCALE and ROOT, and the firmware's scale tables
-   (reuse them instead of carrying 36 tables).
-4. Whether the SEQUENCER view can be identified, and whether a second [FUNC] + [AMP] is free there.
-5. Free per-pattern bytes for EUC+ state.
-6. Sub-step timing for PACE and micro-timing offsets on generated repeats. This is later work.
+### Open questions
+1. ~~Do Euclid hits take the grid fire path?~~ **Yes** (verified: same fire functions; the step read is
+   the hit's source step).
+2. Retrig: the lock slots for RTRG, rate and VFAD, and whether a fire-time lock is honoured (v0.3).
+3. ~~Where KB SCALE / ROOT live~~ **Per pattern**, at `+121725` / `+121727` (research log).
+4. Whether the SEQUENCER view can be identified, and whether a second [FUNC] + [AMP] is free there (v0.2).
+5. Free per-pattern bytes for EUC+ state (v0.3).
+6. Sub-step timing for PACE and micro-timing offsets on generated repeats (later).
+7. The transport state, so a phrase restarts on PLAY (v0.2).
+8. Writing notes on steps that have p-locks (the lock list at `pattern + 27216`).
 
 ### Build order
-1. **v0.1:** NOTES page logic with FOLLOW scale, a fixed pool (1-3-5), PHRS, RNGE, and SEED/LOCK for PTCH.
-   Driven from a SETTINGS row; no overlay yet. This proves `ev_fire_notes` on hardware.
-2. **v0.2:** the overlay via a second [FUNC] + [AMP], the NOTES and RANDOM pages, and the T-1 random gesture.
+1. **v0.1 (done, emulator-verified):** the note engine with FOLLOW scale, a 1-3-5 pool, PHRS, RNGE and
+   SEED/LOCK/VAR, on audio and MIDI tracks, off by default. The settings are in RAM (`eup_cfg`), with no UI.
+2. **v0.2 (next; tasks in PLAN.md):** the overlay via a second [FUNC] + [AMP], the NOTES and RANDOM pages,
+   per-track ON, and phrase reset on PLAY. The T-1 random gesture comes if time allows.
 3. **v0.3:** GROOVE (PROB, ACC/GRV, REP via retrig) and storage.
 4. **v0.4:** VOICE (chords on MIDI tracks, mono arpeggio), the pool keyboard, HARM, and COMMIT.
 

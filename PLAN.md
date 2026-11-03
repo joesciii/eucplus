@@ -1,71 +1,89 @@
-# Digitorsion: plan for expanding the Digitakt II's Euclidean sequencer
+# Digitorsion: plan
 
-Status: proposal (2026-11-03). Nothing has been built or flashed yet.
+Extending the Digitakt II's Euclidean sequencer with **EUC+**, a Torso-T-1-style layer (in-scale
+generated notes, phrases, lockable random, later groove and voicing). It is entered from the stock
+Euclid menu and never replaces the stock mode.
 
-## 1. Where Elektron modding stands (Nov 2026)
+Last updated: 2026-11-03. Target: Digitakt II **OS 1.17** only.
 
-| Project | What it is | Digitakt II status |
+## Where things stand
+
+| Version | Scope | Status |
 |---|---|---|
-| **Elekloader** (irpina/elekloader, GPL-2.0) | A mod loader. It patches *your* stock `.syx` locally with `.elemod` mods, re-seals the file and verifies it. It never touches the bootloader. | **Experimental, OS 1.17 only.** `core-dt2` 1.0 is a hook bus with `ev_tick`, `ev_draw`, `ev_key`, `ev_enc`, `ev_settings` and `ev_personalize`. It booted on a real unit on 4 Oct 2026 (perform-direct). It has **no sequencer hooks yet.** |
-| **Modwerk** (repeat98/modwerk, modwerk.app) | A curated catalogue and builder that sits on top of Elekloader cores | **In research.** Downloads are disabled. A DT2 base was started from toonst's core 1.1 on 30 Oct 2026. Its proposed hooks are `ev_frame_params`, `ev_key_leds`, `core_projdata` and `core_kitdata`. It has no sequencer hooks either. Modwerk's rule is that mods *propose a core hook* and never patch sequencer sites themselves. |
-| **digikit** (m-dwyer/digikit) | A runtime for DT2 and DN2 that loads machines and effects from the card, plus a **full emulator** (ColdFire and SHARC) and Ghidra findings | Its runtime runs on a DT2 with OS 1.17. Its emulator is what Elekloader uses to test DT2 builds. It is aimed at audio and DSP, not the sequencer. |
-| Mk1 prior art | Elekloader `seq-events-dt1` (step-fire events `ev_gen_trig`, `ev_fire_vel`, `ev_fire_cond`, `ev_fire_notes` and others) and the `euclid` example. Modwerk `euclidean` 1.1.5 is a port of the DT2's stock Euclid UI to the mk1. | Digitakt mk1 only |
+| research | Stock Euclid, Torso T-1, modding ecosystem, firmware layout | done: [docs/EXTENDED-EUCLID.md](docs/EXTENDED-EUCLID.md), [docs/RESEARCH-LOG.md](docs/RESEARCH-LOG.md) |
+| **v0.1** | Note engine: pool (1-3-5), phrase × range, seeded lockable random, the pattern's KB SCALE / ROOT; audio and MIDI tracks; **off by default** | **done, emulator-verified** (`mods/eucplus-dt2`, end-to-end test PASS). Not yet run on hardware. No UI: settings in RAM |
+| **v0.2** | The EUC+ pages, opened from the stock Euclid menu; per-track on/off; phrase reset on PLAY | **next** (task list below) |
+| v0.3 | GROOVE page (prob, accent shape, repeats via retrig) + saving the settings | planned |
+| v0.4 | VOICE page (MIDI chords, arpeggio), pool keyboard on the trig keys, HARM, COMMIT to p-locks | planned |
+| later | `seq-events-dt2` (a general step-fire API for Elekloader, upstream PR); Modwerk hook proposal | optional |
 
-Key technical facts for the DT2:
-- **ColdFire (m68k) main OS** plus a SHARC DSP. Sequencer logic is on the ColdFire side.
-- **Sealed firmware.** The file ends with an HMAC-SHA256 seal. Elekloader derives the key from your own stock file and re-seals. This is solved.
-- **Mod RAM:** 256 KB of DDR at `0x47F00000`. Mods are written in C and asm with m68k-elf GCC and binutils.
-- The DT2 OS was largely derived from the mk1. Elekloader found `core-dt2`'s sites by matching mk1 code with the addresses masked. This is why porting `seq-events` from the mk1 is realistic.
-- **Recovery:** hold FUNC at power-on, press TRIG 4, then send the stock `.syx` **over 5-pin DIN MIDI. USB does not work for recovery.**
-- **Community:** since 16 Sep 2026, Elektron does not allow mod files or links on Elektronauts. Discussion moved to elektronmods.com and modwerk.app.
+## Route (decided)
 
-## 2. Chosen route
+- **Elekloader linkable mod** (`mods/eucplus-dt2`) on **core-dt2 1.0**, built against your own stock
+  OS file. Elekloader re-seals it, and the bootloader is never touched.
+- **Hooks:** two 6-byte `jsr` sites at the end of the step fires (audio `0x400d6e10`, MIDI `0x400d7234`).
+  EUC+ rewrites the note byte of the event the fire built, only on Euclid hits without p-locks.
+  It never writes pattern data, so projects stay stock-compatible.
+  - This replaced the earlier idea of porting Elekloader's whole `seq-events` layer first. Direct
+    hooks were enough for v0.1. The port is still worth doing later, for upstream.
+- **Test before hardware:** digikit's emulator with a paced sequencer clock (`--dsp zero`). Builds
+  are hot-installed into it (`tools/hotpatch.py`). `mods/eucplus-dt2/test/e2e_emulator.py` checks the
+  notes the Digitakt actually sends over USB MIDI.
 
-**Use Elekloader format-2 linkable mods on `core-dt2`, OS 1.17, and test in digikit's emulator before any flash.**
+## Starting a new session
 
-This is done in two layers:
+1. `bash tools/setup_env.sh` (about 10 min). It installs the m68k toolchain, the pinned Elekloader
+   and digikit checkouts, and the stock OS 1.17 from elektron.se (hash-checked). It also builds the
+   emulator and its ready state, and builds core + EUC+. Everything goes to `/tmp/digitorsion-work`,
+   outside the repo.
+2. `bash tools/run_e2e.sh`: the end-to-end test must print `RESULT: PASS`.
+3. Edit `mods/eucplus-dt2`, rebuild with `bash tools/build_eucplus.sh`, and test again.
 
-1. **`seq-events-dt2`**, the missing piece. Port Elekloader's `seq-events` device layer from the mk1 (`mods/seq-events-dt1`: 15 sites in the audio and MIDI fire paths) to DT2 1.17. Use the same method `core-dt2` used: masked-opcode matching against the mk1 sites, then confirmation in Ghidra and the emulator. This gives the DT2 the shared `seq-events` API: `ev_gen_trig`, `ev_fire_trig`, `ev_fire_cond`, `ev_fire_vel`, `ev_fire_notes`, `ev_fire_locks`, `sq_clock` and `sq_track_info`. It goes upstream as a PR (Elekloader wants exactly this). Modwerk can later adopt it as a base hook.
-2. **`euclid-plus`**, our mod. It is built on `seq-events-dt2` and the core UI events. It **post-processes** what the stock Euclid engine (or the ordinary trigs) produces at fire time, so the stock pattern data and the stock Euclid UI stay untouched.
+Reference: [docs/RESEARCH-LOG.md](docs/RESEARCH-LOG.md) has every firmware address and how it was
+found. `tools/emu_drive.py` drives the emulator by hand (keys, encoders, screenshots, logs).
 
-Why this route and not the alternatives:
-- **Not Modwerk-first.** It has no DT2 downloads and no sequencer hooks, and it requires hooks to be proposed upstream anyway. Our work feeds into it later.
-- **Not patching the stock Euclid generator directly** (for example, adding a third generator inside Elektron's code). That needs the generator's internals reverse-engineered and an extended pattern format, and stock would drop the extra data on save. It is higher risk and gives worse compatibility. We keep it as an optional phase 5.
-- **Not digikit's runtime.** Its strength is DSP machines and effects. We use its emulator and RE notes, not its module system.
-- **Fire-time processing is non-destructive.** A project saved with the mod still opens on stock firmware.
+## v0.2 tasks
 
-## 3. Feature set for `euclid-plus`
+Goal: you can open EUC+ from the stock Euclid menu, switch it on for a track, and edit the NOTES
+and RANDOM parameters on the device. Settings may still reset at power-on (storage is v0.3).
 
-**Superseded by [docs/EXTENDED-EUCLID.md](docs/EXTENDED-EUCLID.md):** a T-1-style "EUC+" layer entered from the stock Euclid page. The list below is kept for history.
+1. **Know when the stock Euclid (SEQUENCER) menu is open.** core-dt2 1.0 has no `core_view_top`.
+   Either track it from `ev_key` (FUNC + AMP opens it; NO and the page keys close it) or find the
+   view object in the firmware. Start with key tracking, and check it against screenshots.
+2. **Entry gesture:** a second FUNC + AMP while the Euclid menu is open opens EUC+. NO, or FUNC +
+   AMP again, goes back. First confirm in the emulator that stock does nothing with that press.
+   The fallback is FUNC + RIGHT.
+3. **Drawing:** an `ev_draw` overlay of the 128×64 frame in the stock page style: a title, 8
+   parameter slots with labels and values. `Bitmap::fillRect` is at `0x401131ae`. **Find the
+   firmware's text and font routine** (start from how stock pages draw labels such as "PL1").
+4. **Input:** `ev_enc` takes encoders A–H while EUC+ is open (consume the event). Use the stock
+   feel for acceleration. LEFT / RIGHT change page.
+5. **Pages for v0.2:**
+   - **NOTES:** PTCH, RNGE, PHRS, PLEN, (HARM later), SCL (FOLLOW or one of 36), ROOT (FOLLOW or
+     C…B), and **ON**, the per-track on/off.
+   - **RANDOM:** VAR, SEED, LOCK (and RAMT, the random amount on pitch).
+   - Decision pending from the user: an ON control on the page (recommended), or opening the page
+     switches EUC+ on.
+6. **Phrase reset on PLAY:** find the transport state or a playback-start event, and reset each
+   track's pass counter so a riff always starts from its first bar.
+7. **Tests:** extend `e2e_emulator.py` to drive the real UI. It should open EUC+, switch it on,
+   change PTCH and SCL, and check the MIDI notes, plus screenshot checks of each page. Keep
+   `test/host_test.c` passing.
+8. **First hardware check (by you, optional at v0.2):** flash, check recovery over 5-pin DIN MIDI
+   first, then check by ear that audio-track repitching works.
 
-Tier A (fire-time only, low risk):
-1. **Euclid accents / velocity generator:** a third pulse count and rotation that marks accent hits (`ev_fire_vel`).
-2. **Per-hit probability and density:** a chance per generated hit (`ev_fire_cond` / `ev_gen_trig`).
-3. **Evolving rhythms:** pulse count or rotation that advances every N loops (`sq_clock`). For example, the rotation steps +1 each bar.
-4. **Polymetric generator length:** each generator gets its own step length, independent of the track length.
-5. **Ratchet / roll generator:** hits on a third Euclid pattern retrigger (if the fire path allows sub-steps; to be verified).
-6. **Euclid on MIDI tracks with note/pitch cycling:** an Euclidean melody where the note list advances per hit (`ev_fire_notes`).
-7. **Fill-mode alternate generator:** a different pulse count while FILL is held.
+## What I need from you
 
-Tier B (needs storage and UI):
-- Settings saved per pattern or kit through `core_kitdata` / `core_projdata` (core 1.1). There is a **191-byte limit per kit, shared by all mods**, so the settings must be bit-packed (8 tracks × about 6 bytes).
-- An extra Euclid page (FUNC plus a key combo) drawn with `ev_draw` and driven by `ev_key` and `ev_enc`.
+- **Hardware tests** when a build is ready: flash with Elektron Transfer and report back (photos of
+  the screen help). **Before the first flash, check you can recover:** hold FUNC at power-on,
+  press TRIG 4, and send the stock `.syx` over **5-pin DIN MIDI**. USB does not work for recovery.
+- **Decisions:** the v0.2 ON-control question above, and later the storage location (per pattern or per kit).
 
-## 4. Phases
+## Risks
 
-| # | Phase | Output | Exit criterion |
-|---|---|---|---|
-| 0 | Toolchain | m68k-elf GCC and binutils, Elekloader, digikit emulator, headless Ghidra in this container | `core-dt2` plus `hello-marker-dt2` builds and boots in the emulator |
-| 1 | Locate the DT2 fire path | Ghidra project. Map the mk1 `seq-events-dt1` sites to DT2 1.17 addresses, the step-word layout (mk1: trig bit 0x0001, SYN 0x0080…), and where the stock Euclid result enters the fire path | Every site documented with its stock bytes and evidence, as Elekloader's README requires |
-| 2 | `seq-events-dt2` | A linkable mod, plus a port of the `euclid` example ("T1 = 5/16") | It passes in the emulator. **First hardware flash (by you):** T1 plays 5/16 and recovery is tested |
-| 3 | `euclid-plus` v0.1 | Tier A features 1–3, with parameters hard-coded or set in a SETTINGS row | Emulator plus hardware test checklist |
-| 4 | UI and storage | A Euclid+ page, with per-kit or per-pattern settings through core 1.1 data | Projects round-trip on stock and modded firmware |
-| 5 (optional) | Deep integration | RE of the stock Euclid generator: native extra parameters on the stock page | Only if phases 1–4 show it is tractable |
-| 6 | Upstream | PRs to Elekloader (`seq-events-dt2`, example) and a hook proposal to Modwerk | Merged or reviewed |
-
-## 5. Risks
-
-- **OS lock-in:** everything targets 1.17. A new Elektron OS means re-finding the sites (with the same masked-match method).
-- **Timing:** fire handlers run at interrupt level, so the code must be small and allocation-free.
-- **Brick risk is low:** the bootloader is untouched and DIN-MIDI recovery is documented. It is still not zero, and warranty implications are yours to weigh.
-- **Unknowns:** whether stock Euclid hits pass through the same fire path as ordinary trigs (phase 1 answers this), and whether ratchets are reachable.
+- **OS lock-in:** all addresses are for 1.17. A new Elektron OS means re-finding the sites (the
+  method is in the research log).
+- Hooks run at interrupt level, so the code stays small and allocation-free.
+- Brick risk is low (bootloader untouched, DIN-MIDI recovery), but not zero.
+- Since 16 Sep 2026, Elektron does not allow mod files or links on Elektronauts. Share elsewhere,
+  as GPL-2.0 source only, never firmware.

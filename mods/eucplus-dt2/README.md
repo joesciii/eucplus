@@ -35,16 +35,14 @@ only the event's note byte (`+38`) and never touches pattern data, so projects s
 `0 (off), 0x15, 0, 4, RAND, 2, 1, 1, 24, 3`. v0.2 adds the EUC+ pages (second FUNC + AMP in the
 Euclid menu) and stores the settings.
 
-## Build
+## Build and test
+
+From the repo root, in a fresh session:
 
 ```sh
-# from an elekloader checkout; Ubuntu's m68k toolchain works
-export ELEKLOADER_CROSS=m68k-linux-gnu-
-python3 -m elekloader.sdk.build mods/core-dt2 --stock Digitakt_II_OS1.17.syx
-python3 -m elekloader.sdk.build path/to/mods/eucplus-dt2 --stock Digitakt_II_OS1.17.syx
-python3 -m elekloader.patch --stock Digitakt_II_OS1.17.syx \
-    --mod mods/core-dt2/out/core-1.0.elemod --mod path/to/mods/eucplus-dt2/out/eucplus-0.1.0.elemod \
-    --version EUP1 --out eucplus-v0.1.syx
+bash tools/setup_env.sh        # once per session: toolchain, pinned upstreams, stock OS, emulator (~10 min)
+bash tools/build_eucplus.sh    # -> /tmp/digitorsion-work/builds/eucplus.syx (flashable; never commit it)
+bash tools/run_e2e.sh          # the emulator test below; must print RESULT: PASS
 ```
 
 ## Tests
