@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv sync:*)",
+      "Bash(uv run:*)",
+      "Bash(cargo build:*)",
+      "Bash(python3 -I:*)",
+      "Bash(python3 -m elekloader:*)"
+    ]
+  }
+}
