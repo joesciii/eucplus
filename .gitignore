@@ -1,0 +1,5 @@
+# Never commit Elektron firmware or derived images
+*.syx
+*.zip
+firmware/
+out/

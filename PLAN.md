@@ -34,7 +34,9 @@ Why this route and not the alternatives:
 - **Not digikit's runtime.** Its strength is DSP machines and effects. We use its emulator and RE notes, not its module system.
 - **Fire-time processing is non-destructive.** A project saved with the mod still opens on stock firmware.
 
-## 3. Feature set for `euclid-plus` (to prioritise with you)
+## 3. Feature set for `euclid-plus`
+
+**Superseded by [docs/EXTENDED-EUCLID.md](docs/EXTENDED-EUCLID.md):** a T-1-style "EUC+" layer entered from the stock Euclid page. The list below is kept for history.
 
 Tier A (fire-time only, low risk):
 1. **Euclid accents / velocity generator:** a third pulse count and rotation that marks accent hits (`ev_fire_vel`).
