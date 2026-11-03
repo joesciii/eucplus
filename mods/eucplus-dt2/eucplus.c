@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
-/* EUC+ v0.1 for the Digitakt II OS 1.17: T-1-style generated notes on top of the stock
+/* EUC+ v0.2 for the Digitakt II OS 1.17: T-1-style generated notes on top of the stock
  * Euclidean sequencer (docs/EXTENDED-EUCLID.md).
  *
  * Both step fires (audio and MIDI) call eup_fire with the event they built. On a track whose
@@ -8,12 +8,11 @@
  * moved by a phrase shape times RANGE and by a seeded, lockable random sequence (the T-1's
  * Random). Everything else plays as stock. Interrupt level: no firmware calls, no allocation.
  *
- * v0.1 has no UI: its settings are eup_cfg, defaults below, which a later version's EUC+ pages
- * edit (and the emulator tests poke). */
+ * The settings are eup_cfg (defaults below), edited on the EUC+ pages (ui.c). */
 #include <stdint.h>
+#include "eucplus.h"
 
 /* ---- the firmware's layout (docs/RESEARCH-LOG.md) ---------------------------------------- */
-#define TRACKS          16
 #define TRACK_STRIDE    1701            /* a track's record in the pattern */
 #define TR_VEL          1152
 #define TR_NOTE         1157            /* NOTE, 60 = C5 (the sample's own pitch on audio tracks) */
@@ -25,7 +24,6 @@
 #define EV_VEL          39
 
 /* ---- scales: the Digitakt II's KB SCALE list, after CHROMATIC (index -1) ----------------- */
-#define SCALES 36
 static const uint16_t scale_mask[SCALES] = {          /* bit n: semitone n above the root */
     0x0AB5, /* Ionian (Major)        0 2 4 5 7 9 11  */
     0x06AD, /* Dorian                0 2 3 5 7 9 10  */
@@ -65,35 +63,12 @@ static const uint16_t scale_mask[SCALES] = {          /* bit n: semitone n above
     0x0FFF, /* (spare: chromatic)                    */
 };
 
-/* ---- settings (one set per track) --------------------------------------------------------- */
-enum { PH_RAND, PH_SAW, PH_TRI, PH_SINE, PH_PULSE, PH_CAD1, PH_CAD2, PH_CAD3, PH_CAD4, PH_COUNT };
-
-struct eup_track {
-    uint8_t on;         /* EUC+ notes on this track (only while stock Euclid is on). Off by default:
-                         * stock Euclid keeps its own notes until the user turns EUC+ on */
-    uint8_t pool;       /* bit d: scale degree d (0..7) is in the pool; 0x15 = 1-3-5 */
-    int8_t  ptch;       /* transpose within the scale, in degrees */
-    uint8_t rnge;       /* phrase movement, degrees (0..24) */
-    uint8_t phrs;       /* phrase shape (PH_*) */
-    uint8_t plen;       /* phrase length in pattern passes (1..64) */
-    uint8_t seed;       /* the random sequence's seed */
-    uint8_t lock;       /* 1: the random sequence never changes */
-    uint8_t var;        /* unlocked: the chance (0..127) a value re-rolls each pass */
-    uint8_t ramt;       /* random amount on pitch, degrees (0..24) */
-    uint8_t pad[2];
-};
-
-struct eup_cfg {
-    uint32_t magic;                     /* 'EUC+' */
-    uint8_t  enable;                    /* the global switch */
-    uint8_t  pad[3];
-    struct eup_track t[TRACKS];
-};
+/* ---- settings (one set per track: struct eup_track, eucplus.h) ---------------------------- */
 
 struct eup_cfg eup_cfg = {
     0x4555432b, 1, {0, 0, 0},
     {
-#define DEF { 0, 0x15, 0, 4, PH_RAND, 2, 1, 1, 24, 3, {0, 0} }
+#define DEF { 0, 0x15, 0, 4, PH_RAND, 2, 1, 1, 24, 3, SCL_FOLLOW, ROOT_FOLLOW }
         DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF
 #undef DEF
     }
@@ -106,9 +81,16 @@ struct eup_state {
     uint16_t hit;                       /* hits in this pass */
     int8_t rnd[16];                     /* the random sequence */
     uint8_t seeded;                     /* seed the sequence was made from, +1 */
-    uint8_t pad;
+    volatile uint8_t restart;           /* the sequencer stopped: start from the top */
 };
 static struct eup_state st[TRACKS];
+
+void eup_transport_stopped(void)
+{
+    int i;
+    for (i = 0; i < TRACKS; i++)
+        st[i].restart = 1;
+}
 
 /* ---- the debug ring the emulator tests read ------------------------------------------------ */
 struct eup_rec {
@@ -211,6 +193,7 @@ void eup_fire(uint8_t *ev, int32_t track, const uint8_t *pat, int32_t step, int3
     int32_t locked, deg, note, scale, root, lo, hi;
     uint32_t pos;
     uint8_t flags = 0, note_in;
+    int stopped;
 
     if (track < 0 || track >= TRACKS || !pat || !ev || src < 0 || src >= 128)
         return;
@@ -218,8 +201,20 @@ void eup_fire(uint8_t *ev, int32_t track, const uint8_t *pat, int32_t step, int3
     c = &eup_cfg.t[track];
     s = &st[track];
 
-    /* the clock: a pass ends when the playing step goes back */
-    if (step < s->last_step) {
+    /* PLAY after STOP: the phrase and the random sequence start from the top (a pause, then
+     * PLAY, goes on where it was: the sequencer is not stopped in between). A fire while the
+     * sequencer is stopped is the first event of the next PLAY, which STOP builds ahead: it is
+     * the riff's first note too, and the next fire starts from the top again. */
+    stopped = EUP_SEQ_RUN == 0;
+    if (stopped)
+        s->restart = 1;
+    if (s->restart) {
+        if (!stopped)
+            s->restart = 0;
+        s->pass = 0;
+        s->hit = 0;
+        s->seeded = 0;
+    } else if (step < s->last_step) {   /* the clock: a pass ends when the playing step goes back */
         s->pass++;
         s->hit = 0;
         if (!c->lock && c->var)
@@ -248,8 +243,8 @@ void eup_fire(uint8_t *ev, int32_t track, const uint8_t *pat, int32_t step, int3
         deg = c->ptch + pool_degree(c->pool, k);
         deg += phrase(c->phrs, pos, plen * 128u, s, k) * c->rnge / 64;
         deg += (int32_t)s->rnd[(k * 5 + (k >> 7)) & 15] * c->ramt / 127;
-        scale = (int8_t)pat[PAT_KB_SCALE];
-        root = pat[PAT_KB_ROOT] % 12;
+        scale = c->scl == SCL_FOLLOW ? (int8_t)pat[PAT_KB_SCALE] : (int32_t)c->scl - 2;
+        root = c->root == ROOT_FOLLOW ? pat[PAT_KB_ROOT] % 12 : (c->root - 1) % 12;
         note = trk[TR_NOTE] + root + degree_semis(scale, deg);
         lo = is_midi ? 0 : 36;          /* audio NOTE spans 36..84 around the sample's own 60 */
         hi = is_midi ? 127 : 84;

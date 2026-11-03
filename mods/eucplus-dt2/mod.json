@@ -1,16 +1,17 @@
 {
  "id": "eucplus",
- "version": "0.1.0",
+ "version": "0.2.0",
  "license": "GPL-2.0-or-later",
  "title": "EUC+",
  "category": "Sequencer",
  "author": "Digitorsion",
- "description": "EUC+ v0.1: T-1-style generated notes on top of the stock Euclidean sequencer. On Euclid hits without parameter locks, audio and MIDI tracks play notes chosen from a pool of scale degrees in the pattern's KB SCALE and ROOT NOTE, moved by a phrase shape and a seeded, lockable random sequence. Settings in RAM (eup_cfg); no UI yet.",
+ "description": "EUC+ v0.2: T-1-style generated notes on top of the stock Euclidean sequencer, off by default on every track. A second FUNC + AMP on the stock Euclidean page opens the EUC+ pages (NOTES, RANDOM), with a per-track ON control. On Euclid hits without parameter locks, audio and MIDI tracks play notes from a pool of scale degrees in the pattern's KB SCALE and ROOT NOTE (or EUC+'s own), moved by a phrase shape and a seeded, lockable random sequence; the phrase restarts on PLAY. Settings in RAM.",
  "device": "digitakt-mk2",
  "os": "1.17",
  "sources": [
   "site.s",
-  "eucplus.c"
+  "eucplus.c",
+  "ui.c"
  ],
  "cflags": [
   "-Os"
@@ -31,5 +32,32 @@
  ],
  "requires": [
   "core"
- ]
+ ],
+ "subscribe": [
+  {
+   "event": "ev_tick",
+   "fn": "eup_tick",
+   "order": 50
+  },
+  {
+   "event": "ev_key",
+   "fn": "eup_key",
+   "order": 50
+  },
+  {
+   "event": "ev_enc",
+   "fn": "eup_enc",
+   "order": 50
+  },
+  {
+   "event": "ev_draw",
+   "fn": "eup_draw",
+   "order": 60
+  }
+ ],
+ "resources": {
+  "names": [
+   "ui:SEQUENCER page:FUNC+AMP"
+  ]
+ }
 }

@@ -18,4 +18,4 @@ for _ in $(seq 1 120); do [ -f "$RUN/current.json" ] && break; sleep 1; done
 uv run python "$REPO/tools/hotpatch.py" "$RUN" "$STOCK_MAIN" "$WORK/builds/eucplus.main.bin" \
     "$WORK/builds/eucplus.syx.map.json" 2>&1 | grep -v UV_NATIVE | tail -1
 uv run python "$REPO/mods/eucplus-dt2/test/e2e_emulator.py" "$RUN" "$WORK/builds/eucplus.syx.map.json" \
-    2>&1 | grep -v UV_NATIVE
+    "$WORK/shots" 2>&1 | grep -v UV_NATIVE

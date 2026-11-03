@@ -1,5 +1,5 @@
 /* Host test: run eup_fire over a fake pattern and print the notes EUC+ chooses.
- * cc -O1 -o host_test host_test.c ../eucplus.c && ./host_test */
+ * cc -O1 -DEUP_HOST -o host_test host_test.c ../eucplus.c && ./host_test */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -10,6 +10,7 @@ extern uint32_t eup_seq;
 extern unsigned char eup_cfg[];
 void eup_fire(uint8_t *ev, int32_t track, const uint8_t *pat, int32_t step, int32_t src, int32_t is_midi);
 
+volatile int32_t eup_host_seq_run = 1;             /* the sequencer: playing */
 static uint8_t pat[121800];
 static const char *names[12] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
 

@@ -11,9 +11,9 @@ Last updated: 2026-11-03. Target: Digitakt II **OS 1.17** only.
 | Version | Scope | Status |
 |---|---|---|
 | research | Stock Euclid, Torso T-1, modding ecosystem, firmware layout | done: [docs/EXTENDED-EUCLID.md](docs/EXTENDED-EUCLID.md), [docs/RESEARCH-LOG.md](docs/RESEARCH-LOG.md) |
-| **v0.1** | Note engine: pool (1-3-5), phrase × range, seeded lockable random, the pattern's KB SCALE / ROOT; audio and MIDI tracks; **off by default** | **done, emulator-verified** (`mods/eucplus-dt2`, end-to-end test PASS). Not yet run on hardware. No UI: settings in RAM |
-| **v0.2** | The EUC+ pages, opened from the stock Euclid menu; per-track on/off; phrase reset on PLAY | **next** (task list below) |
-| v0.3 | GROOVE page (prob, accent shape, repeats via retrig) + saving the settings | planned |
+| v0.1 | Note engine: pool (1-3-5), phrase × range, seeded lockable random, the pattern's KB SCALE / ROOT; audio and MIDI tracks; **off by default** | done, emulator-verified |
+| **v0.2** | The EUC+ pages (NOTES, RANDOM), opened from the stock Euclid page; per-track ON; own SCL / ROOT; phrase reset on PLAY | **done, emulator-verified** (end-to-end test PASS through the real UI). **Not yet run on hardware** (task 8). Settings in RAM |
+| v0.3 | GROOVE page (prob, accent shape, repeats via retrig) + saving the settings | **next** |
 | v0.4 | VOICE page (MIDI chords, arpeggio), pool keyboard on the trig keys, HARM, COMMIT to p-locks | planned |
 | later | `seq-events-dt2` (a general step-fire API for Elekloader, upstream PR); Modwerk hook proposal | optional |
 
@@ -42,48 +42,53 @@ Last updated: 2026-11-03. Target: Digitakt II **OS 1.17** only.
 Reference: [docs/RESEARCH-LOG.md](docs/RESEARCH-LOG.md) has every firmware address and how it was
 found. `tools/emu_drive.py` drives the emulator by hand (keys, encoders, screenshots, logs).
 
-## v0.2 tasks
+## v0.2 (done, 2026-11-03)
 
-Goal: you can open EUC+ from the stock Euclid menu, switch it on for a track, and edit the NOTES
-and RANDOM parameters on the device. Settings may still reset at power-on (storage is v0.3).
+You can open EUC+ from the stock Euclid page, switch it on for a track, and edit NOTES and RANDOM
+on the device. How to use it: [mods/eucplus-dt2/README.md](mods/eucplus-dt2/README.md). How each
+part was found: [docs/RESEARCH-LOG.md](docs/RESEARCH-LOG.md), "v0.2: the UI".
 
-1. **Know when the stock Euclid (SEQUENCER) menu is open.** core-dt2 1.0 has no `core_view_top`.
-   Either track it from `ev_key` (FUNC + AMP opens it; NO and the page keys close it) or find the
-   view object in the firmware. Start with key tracking, and check it against screenshots.
-2. **Entry gesture:** a second FUNC + AMP while the Euclid menu is open opens EUC+. NO, or FUNC +
-   AMP again, goes back. First confirm in the emulator that stock does nothing with that press.
-   The fallback is FUNC + RIGHT.
-3. **Drawing:** an `ev_draw` overlay of the 128×64 frame in the stock page style: a title, 8
-   parameter slots with labels and values. `Bitmap::fillRect` is at `0x401131ae`. **Find the
-   firmware's text and font routine** (start from how stock pages draw labels such as "PL1").
-4. **Input:** `ev_enc` takes encoders A–H while EUC+ is open (consume the event). Use the stock
-   feel for acceleration. LEFT / RIGHT change page.
-5. **Pages for v0.2:**
-   - **NOTES:** PTCH, RNGE, PHRS, PLEN, (HARM later), SCL (FOLLOW or one of 36), ROOT (FOLLOW or
-     C…B), and **ON**, the per-track on/off.
-   - **RANDOM:** VAR, SEED, LOCK (and RAMT, the random amount on pitch).
-   - **ON control (decided by the user, 2026-11-03):** the EUC+ page has its own per-track on/off
-     control. **Opening or closing the page never changes it.** You can browse and edit EUC+
-     settings while the track keeps playing stock Euclid notes, and switch back to stock without
-     leaving the page. It defaults to OFF on every track. Show the state clearly on every EUC+
-     page (for example ON/OFF in the title bar), so it's obvious whether EUC+ is driving the track.
-6. **Phrase reset on PLAY:** find the transport state or a playback-start event, and reset each
-   track's pass counter so a riff always starts from its first bar.
-7. **Tests:** extend `e2e_emulator.py` to drive the real UI. It should open EUC+ and check that the
-   notes are still stock (opening alone must not switch it on). Then switch ON and check the
-   EUC+ notes, switch OFF on the page and check the notes are stock again. Then change PTCH and
-   SCL and check the MIDI notes, plus screenshot checks of each page. Keep
-   `test/host_test.c` passing.
-8. **First hardware check (by you, optional at v0.2):** flash, check recovery over 5-pin DIN MIDI
-   first, then check by ear that audio-track repitching works.
+1. **Knowing the Euclid page is open:** neither key tracking (NO does not leave the page) nor the
+   title bar (it shows the last parameter edited) works. `ev_draw` hashes the page's two label rows
+   (PL1 PL2 LEN EUC / RO1 RO2 TRO OP), the same on audio and MIDI tracks and with EUC on or off.
+   The firmware's view object was not found; the pixel check replaced it.
+2. **Entry:** a second FUNC + AMP on that page (stock does nothing with it: identical frames).
+   NO or FUNC + AMP goes back; page keys leave EUC+ for their page.
+3. **Drawing:** the firmware's `drawstr` (0x40113d60, returns the width) and `textf` (0x40113d84),
+   the stock label font (0x402aa570) and a 6-pixel title font (0x402a9be0).
+4. **Input:** `ev_enc` takes A–H while EUC+ is open (the delta comes with the stock acceleration);
+   LEFT / RIGHT change page. Transport, TRK, trigs, FUNC and LEVEL pass through.
+5. **Pages:** NOTES (PTCH RNGE PHRS PLEN — SCL ROOT ON) and RANDOM (VAR SEED LOCK RAMT). ON is
+   the per-track switch, off by default, never changed by opening or closing; the title bar shows
+   ON (black box) or OFF on every page. The pages follow the active track
+   (`0x4004abb8(0x40041d18(0x40198b7e()))`).
+6. **Phrase reset:** the run state at `0x43164f94` (0 stopped, 1 playing, 2 paused). STOP then
+   PLAY restarts the riff and the random sequence; pause and resume go on. The event STOP builds
+   ahead for the next PLAY now gets the riff's first note.
+7. **Tests:** `e2e_emulator.py` drives only keys and encoders and checks the MIDI notes and the
+   screens (list in the mod README). `host_test.c` builds with `-DEUP_HOST`.
+8. **First hardware check (you, optional):** still to do. Flash, check recovery over 5-pin DIN MIDI
+   first, then: FUNC + AMP twice on a Euclid track opens EUC+; ON changes the notes; by ear, that
+   audio-track repitching works. Photos of the EUC+ page help.
+
+Not done in v0.2 (moved on): the T-1 random gesture (FUNC + turn), COMMIT.
+
+## v0.3 tasks
+
+1. **Storage:** decide where the settings live (per pattern, preferred, or `core_kitdata`), find
+   free bytes, and load / save with the project. Until then settings reset at power-on.
+2. **GROOVE page:** PROB (skip a hit: clear the event), ACC / GRV (velocity byte `+39`), REP / RTIM /
+   RAMP (find the retrig lock slots, research log "Still to find" 4).
+3. The T-1 random gesture: hold FUNC and turn a parameter to set its random amount.
+4. Keep the end-to-end test driving the real UI for each new parameter.
 
 ## What I need from you
 
 - **Hardware tests** when a build is ready: flash with Elektron Transfer and report back (photos of
   the screen help). **Before the first flash, check you can recover:** hold FUNC at power-on,
   press TRIG 4, and send the stock `.syx` over **5-pin DIN MIDI**. USB does not work for recovery.
-- **Decisions:** ~~ON control~~ (decided: its own on/off control on the page). Later: the storage location
-  (per pattern or per kit, v0.3).
+- **Decisions:** ~~ON control~~ (decided: its own on/off control on the page). **Next:** the storage
+  location (per pattern or per kit, v0.3).
 
 ## Risks
 

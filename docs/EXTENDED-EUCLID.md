@@ -144,7 +144,7 @@ stock Euclid (recalculateEuclidean) ─► pattern trigs ─► step fire (audio
         vel    ACC × GRV → event byte +39                                                [v0.3]
         prob   skip a hit (clear the event)                                              [v0.3, site to find]
         repeat REP/RTIM/RAMP → retrig locks                                              [v0.3, slots to find]
-UI: ev_key/ev_enc/ev_draw (core-dt2 1.0)     storage: per pattern (pref.) / core_kitdata [v0.3]
+UI: ev_tick/ev_key/ev_enc/ev_draw (core-dt2 1.0) [v0.2, done]     storage: per pattern (pref.) / core_kitdata [v0.3]
 ```
 A general `seq-events-dt2` (the mk1's event API) can wrap these hooks later, for upstream.
 
@@ -166,17 +166,20 @@ A general `seq-events-dt2` (the mk1's event API) can wrap these hooks later, for
    the hit's source step).
 2. Retrig: the lock slots for RTRG, rate and VFAD, and whether a fire-time lock is honoured (v0.3).
 3. ~~Where KB SCALE / ROOT live~~ **Per pattern**, at `+121725` / `+121727` (research log).
-4. Whether the SEQUENCER view can be identified, and whether a second [FUNC] + [AMP] is free there (v0.2).
+4. ~~Whether the SEQUENCER view can be identified, and whether a second [FUNC] + [AMP] is free there~~
+   **Yes, free** (identical frames). The page is recognised by its label pixels in `ev_draw`; the view
+   object itself was not found (research log, "v0.2: the UI").
 5. Free per-pattern bytes for EUC+ state (v0.3).
 6. Sub-step timing for PACE and micro-timing offsets on generated repeats (later).
-7. The transport state, so a phrase restarts on PLAY (v0.2).
+7. ~~The transport state~~ **`0x43164f94`**: 0 stopped, 1 playing, 2 paused. STOP then PLAY restarts the phrase.
 8. Writing notes on steps that have p-locks (the lock list at `pattern + 27216`).
 
 ### Build order
 1. **v0.1 (done, emulator-verified):** the note engine with FOLLOW scale, a 1-3-5 pool, PHRS, RNGE and
    SEED/LOCK/VAR, on audio and MIDI tracks, off by default. The settings are in RAM (`eup_cfg`), with no UI.
-2. **v0.2 (next; tasks in PLAN.md):** the overlay via a second [FUNC] + [AMP], the NOTES and RANDOM pages,
-   per-track ON, and phrase reset on PLAY. The T-1 random gesture comes if time allows.
+2. **v0.2 (done, emulator-verified):** the overlay via a second [FUNC] + [AMP], the NOTES page (with SCL
+   and ROOT, FOLLOW by default) and a RANDOM page of VAR, SEED, LOCK, RAMT (RATE later), per-track ON,
+   and phrase reset on PLAY. The T-1 random gesture moved to v0.3.
 3. **v0.3:** GROOVE (PROB, ACC/GRV, REP via retrig) and storage.
 4. **v0.4:** VOICE (chords on MIDI tracks, mono arpeggio), the pool keyboard, HARM, and COMMIT.
 

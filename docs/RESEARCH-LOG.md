@@ -150,11 +150,88 @@ uv run python mods/eucplus-dt2/test/e2e_emulator.py out/native/run build.syx.map
 - Do not `pkill -f digi-emud` from a shell whose own command line contains that string. Use the
   control socket's `quit`.
 
+## v0.2: the UI (verified in the emulator, 2026-11-03)
+
+All of these were found or checked in the paced emulator with the EUC+ build hot-installed, and
+the EUC+ end-to-end test (`tools/run_e2e.sh`) exercises each of them.
+
+**Events (core-dt2 1.0).** `ev_key`: `ev+12` the key id, the same numbers as the emulator's button
+codes (FUNC 17, AMP 4, NO 12, LEFT 13, RIGHT 15, YES 10, trig 1-16 = 25-40, encoder pushes 41-48),
+`ev+16` the flags: 1 press, 2 FUNC held, 0x10 release (FUNC + AMP comes as FUNC 1, AMP 3, AMP 0x12,
+FUNC 0). `ev_enc`: `ev+12` the encoder 1-8 (A-H), `ev+16` the signed delta. The driver merges
+events: ten quick +1 detents arrive as one +10. One emulator `turn` is at most 30 detents.
+**[V]** by logging every event to a ring and reading it back.
+
+**The stock SEQUENCER page and FUNC + AMP.** FUNC + AMP opens the page (title "Euclidean"). On that
+page a second FUNC + AMP changes nothing: the frame hash is identical after it, twice. NO does not
+leave the page either (it is a page, not a menu). The page keys (SRC, FLTR, AMP, FX, MOD) leave it.
+**[V]** frame hashes and screenshots.
+
+**Telling that the page is on screen.** The frame's title bar is no use: after a parameter edit it
+shows the parameter ("Pulses Gen 1: 5") and stays so, and with EUC on it reads "Euclidean mode...".
+The two rows of parameter labels are fixed: `PL1 PL2 LEN EUC` and `RO1 RO2 TRO OP`. EUC+ hashes
+them in `ev_draw` (rows 0-4 and 27-31, columns 18-127; djb2-xor over the column bits): `0xf6f7e0f0`
+on the page, for audio and MIDI tracks, EUC on and off, after edits, on other tracks, playing or
+stopped; a different value on the main screen, on FLTR, AMP, FX and MOD, and on SRC with the
+sample machine and with the MIDI machine. **[V]**. The firmware's view object for the page was not found:
+`ctrl` (`ev_draw`'s second argument) has no field that tells pages apart, and `Brain::key`
+(0x40030bd0) passes keys to a listener list and then to the view manager at `brain + 64`
+(0x4011c79c), whose tree was not followed.
+
+**The frame Bitmap.** `+0` vtable `0x4021cff8`, `+4` width 128, `+8` height 64, `+12` longs per
+column (2), `+16` the pixels. Column x, row y (0 = the bottom row) is bit `31 - y % 32` of long
+`x * stride + y / 32`; from `Bitmap::fillRect` (0x401131ae): its masks are `-1 >> (y0 & 31)` and
+`-1 << (~y1 & 31)`, its word `x * stride + y / 32`. The OLED frame digikit reports is the same
+bytes (`frame[(7 - y/8) + 8x]`, y from the top). There are two frame buffers (0x44e4a5b8,
+0x44e4a9b8), used in turn; `ev_draw`'s Bitmap is a temporary object, so do not keep it. **[V]**
+
+**Text.** `0x40113d84` is `textf(bmp, font, x, y, maxlen, fmt, ...)`: `vsprintf` (0x400005e0) into
+a 128-byte buffer, then `0x40113d60`. `0x40113d60` is `drawstr(bmp, font, x, y, maxlen, s)`
+(it calls 0x40113a84 with one more argument, 0). It ORs the text in, with y its bottom row, and
+**returns the width drawn in pixels** ("PTCH" 19, "I" 2, "W" 6, "ABCDEF" with maxlen 2: 10). EUC+
+measures text by drawing it into a 128 x 32 Bitmap of its own (the frame's header, its own
+pixels). Found from the mk1: there `fillrect` 0x400c19a6, `textf` 0x400c257c and `blit` 0x400c2960;
+the DT2's `fillrect` (0x401131ae) and `blit` (0x40114168) are the same 0xfba apart, and
+0x401131ae + 0xbd6 (the mk1's `textf - fillrect`) is 0x40113d84, which has the `textf` shape.
+**[V]** by drawing.
+
+**Fonts** (pointers the stock pages pass to `textf` / `drawstr`; counted over every caller):
+`0x402aa570` is the 5-pixel capitals of the stock labels ("PL1"), header `{5, 5, ...}`;
+`0x402a9be0` is a 6-pixel upper- and lower-case font, header `{3, 0x10006, ...}`. `0x44d2e6f4`
+(RAM, passed 8 times) draws nothing when passed as a font. **[V]** by drawing.
+
+**The active track.** `0x40077308` is the track select (TRK + trig): it clamps the track to
+0-15, gets `ctx = 0x40198b7e()` (a lazily made singleton, `*0x44f370a0`), `sel = 0x40041d18(ctx)`
+(`ctx + 48`), and compares the track with `0x4004abb8(sel)` before it calls the setter 0x4004e3ca.
+`0x4004abb8` reads `sel->vtbl[10](sel) + 8`. So **the active track is
+`0x4004abb8(0x40041d18(0x40198b7e()))`**, 0-15. These return pointers **in d0**: in C, declare
+them as returning an integer, or GCC (m68k-linux) reads a0, which crashed the emulator
+(`UnsupportedGuestPc(0)`). Found by snapshot diffs over track changes (six bytes followed the track:
+0x41765c9f, 0x41765cf0, 0x42936825/9, 0x45139c6d/71), then write guards on them (`guard.set`),
+whose writer at 0x4004e41e led to the setter and its caller. Call them from the UI task only.
+**[V]** by switching tracks (TRK + T2 on the EUC+ page edits track 2).
+
+**The transport.** `0x43164f94` (s32) is the sequencer's run state: **0 stopped, 1 playing,
+2 paused** (PLAY while playing). `0x400d688a` returns `*0x43165010 | *0x43164f94`. Found by
+snapshot diffs stopped / playing / stopped / playing (0, 1, 0, 1), then its 13 users, all in the
+sequencer (0x400d5d86 and 0x400d6650 set 1; 0x400d673c, 0x400d79ba clear it). **[V]** by peeking it
+through PLAY, PLAY (pause), STOP. A plain read is safe at interrupt level.
+
+**STOP builds the next PLAY's first event.** On STOP the sequencer runs one more fire, for step 0,
+while the run state is already 0, and PLAY sends that event at once (no new fire for step 0). This
+was the v0.1 test's "first note queued before PLAY". EUC+ treats a fire while stopped as the
+riff's first note. **[V]**: the EUC+ log gets one record at STOP (step 0) and none at PLAY, and
+with EUC+ on the first note sent after PLAY is the riff's first.
+
+**Not working in this emulator:** `mem.cf.peek` reads SRAM (0x80000000-0x80010000) as 0. A
+`mem.cf.poke` into firmware code or data at 0x40800000 crashed the session (do not poke markers
+into unknown memory; `state.save` plus `tools.emulator.snapread` reads all memory, by 1 MB pages).
+
 ## Still to find
 
 1. ~~The fire's caller and the note site~~ (done, above).
 2. The lock list layout (`pattern + 27216`, 14-byte records?) for writing a note into locked steps.
 3. ~~KB SCALE / ROOT~~ (done: per pattern).
 4. The retrig lock slots.
-5. The SEQUENCER (Euclid) view object, for `core_view_top` / the EUC+ entry gesture.
-6. The transport state (PLAY from the top), to reset the phrase phase.
+5. The SEQUENCER (Euclid) view object (v0.2 uses the page's label pixels instead, above).
+6. ~~The transport state~~ (done: `0x43164f94`, above).
