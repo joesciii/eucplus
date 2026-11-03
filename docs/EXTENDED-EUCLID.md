@@ -1,6 +1,6 @@
 # Extended Euclid ("EUC+"): research and design
 
-Status: design draft, revision 2 (2026-11-03). Target: Digitakt II OS 1.17.
+Status: design revision 2. **v0.1 is built and passes in the emulator** (mods/eucplus-dt2). Target: Digitakt II OS 1.17.
 
 Stock file verified: `Digitakt_II_OS1.17.syx`, sha256 `26c22f66…50d5`. The main OS depacks to
 3,275,616 bytes, sha256 `a1e7b657…`, both matching Elekloader's `digitakt_mk2` profile. The
@@ -36,8 +36,8 @@ T1 docs (docs.torsoelectronics.com, parameter reference and core concepts, read 
   `0x401f5d44`). The hits are computed into the track, so at play time they look like ordinary
   trigs. That is why EUC+ can work at the moment a step plays.
 - **What the Digitakt II already has that EUC+ can reuse:**
-  - **KB SCALE and ROOT NOTE per track, stored in the pattern** (FUNC + KEYBOARD, §8.5.2), with
-    36 scales (App. D). EUC+ follows these by default, so there is no separate scale to set and save.
+  - **KB SCALE and ROOT NOTE, stored in the pattern** (FUNC + KEYBOARD, §8.5.2), with 36 scales
+    (App. D). Verified: one setting per pattern, shared by all tracks, despite the manual's wording. EUC+ follows these by default, so there is no separate scale to set and save.
   - **Retrig on each trig:** RTRG, rate (1/1 … 1/80) and VFAD velocity fade. These are the means for repeats.
   - **Trig PROB, trig conditions, micro timing, NOT2–4.**
 

@@ -1,17 +1,35 @@
 {
  "id": "eucplus",
- "version": "0.0.1",
+ "version": "0.1.0",
  "license": "GPL-2.0-or-later",
- "title": "EUC+ probe",
+ "title": "EUC+",
  "category": "Sequencer",
  "author": "Digitorsion",
- "description": "EUC+ step 0: hooks the end of the Digitakt II's audio-track step fire (0x400d6982) and logs each fire's event into a RAM ring for the emulator to read. Changes nothing the unit plays.",
+ "description": "EUC+ v0.1: T-1-style generated notes on top of the stock Euclidean sequencer. On Euclid hits without parameter locks, audio and MIDI tracks play notes chosen from a pool of scale degrees in the pattern's KB SCALE and ROOT NOTE, moved by a phrase shape and a seeded, lockable random sequence. Settings in RAM (eup_cfg); no UI yet.",
  "device": "digitakt-mk2",
  "os": "1.17",
- "sources": ["site.s", "eucplus.c"],
- "cflags": ["-Os"],
- "sites": [
-  {"addr": "0x400d6e10", "stock": "274e0054200b", "op": "jsr", "target": "eup_site_afire"}
+ "sources": [
+  "site.s",
+  "eucplus.c"
  ],
- "requires": ["core"]
+ "cflags": [
+  "-Os"
+ ],
+ "sites": [
+  {
+   "addr": "0x400d6e10",
+   "stock": "274e0054200b",
+   "op": "jsr",
+   "target": "eup_site_afire"
+  },
+  {
+   "addr": "0x400d7234",
+   "stock": "2d420010200b",
+   "op": "jsr",
+   "target": "eup_site_mfire"
+  }
+ ],
+ "requires": [
+  "core"
+ ]
 }

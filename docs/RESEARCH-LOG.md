@@ -102,10 +102,55 @@ uv run python -m tools.emulator.ready dt2 --syx firmware/Digitakt_II_OS1.17.syx
   (`0x44f37c94`), two output pointers (alternating between two buffers), `0x450439b0`.
 - With the sequencer clock stopped, every fire reported step 0. To recheck with a running clock.
 
+
+## The fire's caller and the pattern (verified 2026-11-03)
+
+- The caller at `0x400d81b0` pushes, per track: track, **the active pattern (`*0x4316501c`)**, a
+  record (`*0x43165028`), **the playing step (a per-track playhead byte)**, 0 (the fire allocates
+  the event), d6, and an out pointer. `0x43165024` looks like the next pattern, as on the mk1.
+  The playing pattern was `0x41776cb8` in every run.
+- In Euclid mode the step the fire reads is the **source step = the hit's index in the pass**
+  (0, 1, 2…), so generated hits use successive source steps and their locks.
+- Track record (stride 1701): **VEL `+1152`, default trigs `+1154` (u16), NOTE `+1157` (60 = C5),
+  PROB `+1168`, Euclid flag `+1176`**. Per-step bytes (128 steps): tables at `+256`, `+384`, `+512`,
+  `+640`, `+768`, `+896`, `+1024` (conditions use 640/768/896).
+- The pattern's lock index: s16 at `pattern + 2·(38184 + 128·track + step)`, −1 = no locks.
+- **Event:** byte `+38` = NOTE, `+39` = VEL, `+40` = `+1153`. These are written by the fire when the
+  step has no locks; that is the byte EUC+ sets. The MIDI fire's event (fp) has the same bytes.
+  Confirmed end to end: the notes on USB MIDI equal the bytes EUC+ wrote.
+- **KB SCALE / ROOT NOTE are per pattern**, not per track: s8 at `pattern + 121725` (−1 chromatic,
+  then App. D order from 0 = Ionian) and u8 at `pattern + 121727` (0 = C). Changing them on T1 or T2
+  changes the same bytes.
+- The firmware's 7-note mode tables (Ionian … Locrian bb3 bb7) are at `0x4022492c`, with 255 for
+  scales that do not have 7 notes. The scale names are at `0x402b6830`.
+- A MIDI track (MIDI machine, CHAN enabled with FUNC + push A) sends to **USB** in the emulator's
+  default config, not DIN.
+
+## Testing with a running sequencer
+
+ColdFire-only mode has no sequencer clock. Use the paced mode:
+
+```sh
+digi-emud firmware/Digitakt_II_OS1.17.syx --dsp zero \
+    --cf-snapshot out/snapshots/dt2-audio-ready-cold-*/digi-audio-m5.snap --run-dir out/native/run --no-audio
+python3 -I tools/unpack.py ELEKLOADER build.syx build.main.bin
+uv run python tools/hotpatch.py out/native/run stock.main.bin build.main.bin build.syx.map.json
+uv run python mods/eucplus-dt2/test/e2e_emulator.py out/native/run build.syx.map.json
+```
+
+- A cold `firmware.load` of a patched image drops the session to `dsp: none`, so `tools/hotpatch.py`
+  writes the patched bytes into the running paced session instead. It does what core's boot copier
+  does: copies `__run_load` to `__run_start` and zeroes `.bss`.
+- `emu:ready` needs digikit's shared SHARC core (`sharc_transpile --strict --out out/native/shared-core/gen`,
+  then `SHARC_GEN_DIR=…/shared-core/gen`) and the HWR text above.
+- Do not `pkill -f digi-emud` from a shell whose own command line contains that string. Use the
+  control socket's `quit`.
+
 ## Still to find
 
-1. The fire's caller (pointer table) and the note site (the mk1's `lea (a3,d3.l),a0; moveq #-1`).
-2. The velocity, lock and note-count sites after `0x400d6b00`.
-3. KB SCALE / ROOT in the track or pattern record, and the firmware's scale tables.
+1. ~~The fire's caller and the note site~~ (done, above).
+2. The lock list layout (`pattern + 27216`, 14-byte records?) for writing a note into locked steps.
+3. ~~KB SCALE / ROOT~~ (done: per pattern).
 4. The retrig lock slots.
-5. The SEQUENCER (Euclid) view object, for `core_view_top`.
+5. The SEQUENCER (Euclid) view object, for `core_view_top` / the EUC+ entry gesture.
+6. The transport state (PLAY from the top), to reset the phrase phase.

@@ -3,3 +3,4 @@
 *.zip
 firmware/
 out/
+mods/*/out/

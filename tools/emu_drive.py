@@ -73,6 +73,39 @@ def main():
             a, n = arg.split(':')
             a = num(a)
             print(' '.join('%08x' % (emu.peek32(a + 4 * i) or 0) for i in range(int(n))))
+        elif op == 'midi':                      # print the note-ons sent on MIDI DIN since the last call
+            data = emu.midi_out()
+            names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+            ons, i, status = [], 0, 0
+            while i < len(data):
+                b = data[i]
+                if b & 0x80:
+                    status = b; i += 1
+                    if b >= 0xF8:
+                        continue
+                if status & 0xF0 in (0x80, 0x90, 0xA0, 0xB0, 0xE0) and i + 1 < len(data):
+                    d1, d2 = data[i], data[i + 1]; i += 2
+                    if status & 0xF0 == 0x90 and d2:
+                        ons.append('%s%d' % (names[d1 % 12], d1 // 12 - 1))
+                elif status & 0xF0 in (0xC0, 0xD0):
+                    i += 1
+                else:
+                    i += 1
+            print('midi out: %d bytes, note-ons (MIDI octaves, 60 = C4):' % len(data), ' '.join(ons))
+        elif op == 'elog':                      # elog:EUP_LOG:EUP_SEQ (EUC+ v0.1 records, 8 bytes)
+            a, s = (num(x) for x in arg.split(':'))
+            seq = emu.peek32(s) or 0
+            names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+            nn = lambda n: '%s%d' % (names[n % 12], n // 12 - 1)
+            print('records:', seq)
+            for j in range(max(0, seq - 64), seq):
+                base = a + 8 * (j % 64)
+                w0 = emu.peek32(base) or 0; w1 = emu.peek32(base + 4) or 0
+                t, st, src, nin = w0 >> 24, (w0 >> 16) & 255, (w0 >> 8) & 255, w0 & 255
+                nout, deg, ps, fl = w1 >> 24, (w1 >> 16) & 255, (w1 >> 8) & 255, w1 & 255
+                print('#%-4d T%-2d pass %3d step %3d src %3d  note %s -> %s  deg %4d  %s' % (
+                    j, t + 1, ps, st, src, nn(nin), nn(nout), deg - 256 if deg > 127 else deg,
+                    ('euclid ' if fl & 1 else '') + ('LOCKED ' if fl & 2 else '') + ('changed' if fl & 4 else '')))
         elif op == 'log':                       # log:EUP_LOG:EUP_SEQ (probe records, 88 bytes)
             a, s = (num(x) for x in arg.split(':'))
             seq = emu.peek32(s) or 0
