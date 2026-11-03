@@ -20,6 +20,7 @@ static void run(const char *title, int scale, int root, int passes)
     memset(pat, 0, sizeof pat);
     for (k = 0; k < 16 * 128; k++) { pat[2 * 38184 + 2 * k] = 0xff; pat[2 * 38184 + 2 * k + 1] = 0xff; }
     pat[1157] = 60; pat[1176] = 1;                     /* track 0: NOTE C5, Euclid on */
+    eup_cfg[8] = 1;                                    /* EUC+ on for track 0 (off by default) */
     pat[121725] = (uint8_t)scale; pat[121727] = (uint8_t)root;
     for (s = 0; s < 16; s++) if ((s * 5) % 16 < 5) hits[n++] = s;   /* 5 of 16 */
     printf("%s (scale %d, root %s):\n", title, scale, names[root]);

@@ -8,8 +8,8 @@ then, from the digikit checkout, after tools/hotpatch.py has installed the build
 
 It turns track 1 into a MIDI track on channel 1, switches stock Euclidean mode on with PL1 = 5,
 sets the pattern to A pentatonic minor, plays, and checks over USB MIDI:
-  1. EUC+ off: every hit plays the track's NOTE (stock behaviour).
-  2. EUC+ on, locked: every note is in the scale, the notes sent equal the notes EUC+ logged,
+  1. Defaults (EUC+ off on every track): every hit plays the track's NOTE, as stock.
+  2. EUC+ switched on for track 1, locked: every note is in the scale, the notes sent equal the notes EUC+ logged,
      and the riff repeats every PLEN passes.
   3. EUC+ on, unlocked: notes stay in the scale and the riff changes.
 """
@@ -73,13 +73,12 @@ def main():
     poke8(PAT + 121727, 9)                                # ROOT NOTE: A
     ok = True
 
-    poke8(cfg + 4, 0)                                     # 1. EUC+ off
-    notes, _ = play(4000)
+    notes, _ = play(4000)                                 # 1. defaults: EUC+ off on every track
     stock = len(set(notes[1:])) == 1
-    print('off:      ', notes, '->', 'PASS stock notes' if stock else 'FAIL')
+    print('default:  ', notes, '->', 'PASS stock Euclid notes' if stock else 'FAIL')
     ok &= stock
 
-    poke8(cfg + 4, 1)                                     # 2. on, locked (defaults: PLEN 2)
+    poke8(cfg + 8, 1)                                     # 2. EUC+ on for track 1 (as v0.2's UI will), locked
     notes, logged = play(10000)
     in_scale = all(n % 12 in A_PENT_MIN for n in notes[1:])
     sent = notes[1:]                                  # the first may be a note queued before PLAY

@@ -7,8 +7,12 @@ T-1-style generated notes on top of the stock Euclidean sequencer. It is an Elek
 
 ## What it does
 
-On a track whose stock Euclidean mode is on (FUNC + AMP, EUC), each generated hit on a step with
-no parameter locks gets a note chosen by EUC+ instead of the track's NOTE:
+**EUC+ is off on every track by default.** Stock Euclidean mode keeps its own note behaviour
+(every hit plays the track's NOTE, or its p-lock) until you switch EUC+ on for that track. In v0.2
+that happens when you enter EUC+ from the Euclid menu; in v0.1 it is the `on` byte in `eup_cfg`.
+
+Once EUC+ is on for a track whose stock Euclidean mode is also on (FUNC + AMP, EUC), each generated
+hit on a step with no parameter locks gets a note chosen by EUC+ instead of the track's NOTE:
 
 - **Pool:** scale degrees to pick from, default 1-3-5 (bit mask `0x15`).
 - **Scale and root:** the pattern's own **KB SCALE / ROOT NOTE** (FUNC + KEYBOARD), all 36 scales.
@@ -28,7 +32,7 @@ only the event's note byte (`+38`) and never touches pattern data, so projects s
 
 `eup_cfg` = `{u32 'EUC+', u8 enable, pad[3], track[16] × 12 bytes}`. Each track entry is
 `on, pool, ptch, rnge, phrs, plen, seed, lock, var, ramt, pad[2]`. The defaults are
-`1, 0x15, 0, 4, RAND, 2, 1, 1, 24, 3`. v0.2 adds the EUC+ pages (second FUNC + AMP in the
+`0 (off), 0x15, 0, 4, RAND, 2, 1, 1, 24, 3`. v0.2 adds the EUC+ pages (second FUNC + AMP in the
 Euclid menu) and stores the settings.
 
 ## Build
@@ -47,11 +51,12 @@ python3 -m elekloader.patch --stock Digitakt_II_OS1.17.syx \
 
 - `test/host_test.c`: the note logic on the host (`cc -O1 -o t test/host_test.c eucplus.c && ./t`).
 - `test/e2e_emulator.py`: digikit's emulator with a paced clock. It sets up track 1 as a MIDI
-  Euclid track (PL1 = 5), A pentatonic minor, and checks the USB MIDI it sends. Result
+  Euclid track (PL1 = 5), A pentatonic minor, and checks the USB MIDI it sends: stock notes with
+  the defaults, then EUC+ switched on for track 1 (locked, then unlocked). Result
   (2026-11-03):
 
 ```
-off:       [62, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60] -> PASS stock notes
+default:   [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60] -> PASS stock Euclid notes
 locked:    [60, 67, 69, 72, 79, 74, 64, 69, 81, 76, 74, 67, 69, 72, 79, 74, 64, 69, 81, 76, 74, 67, ...]
   in scale True, notes sent == notes EUC+ chose True, repeats every 2 passes True
 unlocked:  [74, 64, 69, 81, 76, 76, 69, 69, 69, 76, 74, 74, 67, 76, 74, 64, 76, 74, 67, 81, ...]

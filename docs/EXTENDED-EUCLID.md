@@ -68,8 +68,9 @@ dice roll on every step.** You get a riff you can keep, nudge or release.
 ## 3. EUC+ design
 
 ### Principles
-1. **It sits on top of stock Euclid and never replaces it.** EUC+ only changes the hits as each step plays.
-   With EUC+ off, the track is exactly stock. Pattern data changes only when you press COMMIT.
+1. **It sits on top of stock Euclid and never replaces it.** EUC+ is **off on every track by default**, so
+   stock Euclid keeps its normal note behaviour until you enter EUC+ and switch it on for that track.
+   EUC+ only changes the hits as each step plays. With EUC+ off, the track is exactly stock. Pattern data changes only when you press COMMIT.
 2. **It is a second layer of the stock SEQUENCER menu.**
 3. **It works in the Digitakt II's own terms.** Scale and root come from the track's KB SCALE / ROOT NOTE.
    Repeats use the trig's own retrig. Chords use NOT2–4 on MIDI tracks.

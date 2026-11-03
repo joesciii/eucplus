@@ -69,7 +69,8 @@ static const uint16_t scale_mask[SCALES] = {          /* bit n: semitone n above
 enum { PH_RAND, PH_SAW, PH_TRI, PH_SINE, PH_PULSE, PH_CAD1, PH_CAD2, PH_CAD3, PH_CAD4, PH_COUNT };
 
 struct eup_track {
-    uint8_t on;         /* EUC+ notes on this track (only while stock Euclid is on) */
+    uint8_t on;         /* EUC+ notes on this track (only while stock Euclid is on). Off by default:
+                         * stock Euclid keeps its own notes until the user turns EUC+ on */
     uint8_t pool;       /* bit d: scale degree d (0..7) is in the pool; 0x15 = 1-3-5 */
     int8_t  ptch;       /* transpose within the scale, in degrees */
     uint8_t rnge;       /* phrase movement, degrees (0..24) */
@@ -92,7 +93,7 @@ struct eup_cfg {
 struct eup_cfg eup_cfg = {
     0x4555432b, 1, {0, 0, 0},
     {
-#define DEF { 1, 0x15, 0, 4, PH_RAND, 2, 1, 1, 24, 3, {0, 0} }
+#define DEF { 0, 0x15, 0, 4, PH_RAND, 2, 1, 1, 24, 3, {0, 0} }
         DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF, DEF
 #undef DEF
     }
