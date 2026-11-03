@@ -62,12 +62,17 @@ and RANDOM parameters on the device. Settings may still reset at power-on (stora
    - **NOTES:** PTCH, RNGE, PHRS, PLEN, (HARM later), SCL (FOLLOW or one of 36), ROOT (FOLLOW or
      C…B), and **ON**, the per-track on/off.
    - **RANDOM:** VAR, SEED, LOCK (and RAMT, the random amount on pitch).
-   - Decision pending from the user: an ON control on the page (recommended), or opening the page
-     switches EUC+ on.
+   - **ON control (decided by the user, 2026-11-03):** the EUC+ page has its own per-track on/off
+     control. **Opening or closing the page never changes it.** You can browse and edit EUC+
+     settings while the track keeps playing stock Euclid notes, and switch back to stock without
+     leaving the page. It defaults to OFF on every track. Show the state clearly on every EUC+
+     page (for example ON/OFF in the title bar), so it's obvious whether EUC+ is driving the track.
 6. **Phrase reset on PLAY:** find the transport state or a playback-start event, and reset each
    track's pass counter so a riff always starts from its first bar.
-7. **Tests:** extend `e2e_emulator.py` to drive the real UI. It should open EUC+, switch it on,
-   change PTCH and SCL, and check the MIDI notes, plus screenshot checks of each page. Keep
+7. **Tests:** extend `e2e_emulator.py` to drive the real UI. It should open EUC+ and check that the
+   notes are still stock (opening alone must not switch it on). Then switch ON and check the
+   EUC+ notes, switch OFF on the page and check the notes are stock again. Then change PTCH and
+   SCL and check the MIDI notes, plus screenshot checks of each page. Keep
    `test/host_test.c` passing.
 8. **First hardware check (by you, optional at v0.2):** flash, check recovery over 5-pin DIN MIDI
    first, then check by ear that audio-track repitching works.
@@ -77,7 +82,8 @@ and RANDOM parameters on the device. Settings may still reset at power-on (stora
 - **Hardware tests** when a build is ready: flash with Elektron Transfer and report back (photos of
   the screen help). **Before the first flash, check you can recover:** hold FUNC at power-on,
   press TRIG 4, and send the stock `.syx` over **5-pin DIN MIDI**. USB does not work for recovery.
-- **Decisions:** the v0.2 ON-control question above, and later the storage location (per pattern or per kit).
+- **Decisions:** ~~ON control~~ (decided: its own on/off control on the page). Later: the storage location
+  (per pattern or per kit, v0.3).
 
 ## Risks
 

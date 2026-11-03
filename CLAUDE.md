@@ -21,7 +21,7 @@ and how to set up a session.
 - **Never commit Elektron firmware** or anything built from it (`.syx`, depacked images,
   disassembly, emulator snapshots). These live in `/tmp/digitorsion-work` (see `.gitignore`).
 - **EUC+ must stay off by default** on every track. Stock Euclid keeps its own behaviour until
-  the user switches EUC+ on, and EUC+ never rewrites pattern data except by an explicit COMMIT.
+  the user switches EUC+ on with its own ON control on the EUC+ page (opening the page never switches it on), and EUC+ never rewrites pattern data except by an explicit COMMIT.
 - Every change must keep `tools/run_e2e.sh` at `RESULT: PASS` and `mods/eucplus-dt2/test/host_test.c` building.
 - Record new firmware findings in `docs/RESEARCH-LOG.md`, with their evidence, before relying on them.
 - Hook code runs at interrupt level: no firmware calls, no allocation, keep it small.

@@ -71,7 +71,8 @@ dice roll on every step.** You get a riff you can keep, nudge or release.
 1. **It sits on top of stock Euclid and never replaces it.** EUC+ is **off on every track by default**, so
    stock Euclid keeps its normal note behaviour until you enter EUC+ and switch it on for that track.
    EUC+ only changes the hits as each step plays. With EUC+ off, the track is exactly stock. Pattern data changes only when you press COMMIT.
-2. **It is a second layer of the stock SEQUENCER menu.**
+2. **It is a second layer of the stock SEQUENCER menu.** Entering it does not switch EUC+ on. Each track
+   has its own ON control on the NOTES page, and every EUC+ page shows the state.
 3. **It works in the Digitakt II's own terms.** Scale and root come from the pattern's KB SCALE / ROOT NOTE
    (one setting per pattern).
    Repeats use the trig's own retrig. Chords use NOT2–4 on MIDI tracks.
@@ -98,7 +99,7 @@ dice roll on every step.** You get a riff you can keep, nudge or release.
 | E | HARM | move one pool note up or down a degree (hysteretic, like the T-1) |
 | F | SCL | FOLLOW (the pattern's KB SCALE) or one of the 36 scales |
 | G | ROOT | FOLLOW or C…B |
-| H | ON | EUC+ on/off for this track (off by default; recommended over switching on when the page opens; user to confirm) |
+| H | ON | EUC+ on/off for this track. Off by default. **Decided: its own control. Opening or closing the EUC+ page never changes it** |
 
 **Note pool:** hold [FUNC] on the NOTES page and the 16 [TRIG] keys become the scale-degree keyboard
 (only in-scale notes lit), as on the T-1's Pitch view. The default pool is root, 3rd and 5th.
