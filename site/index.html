@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EUC+ for Digitakt II</title>
+<meta name="description" content="EUC+: Torso T-1-style generated melodies on top of the Digitakt II's stock Euclidean sequencer. An unofficial Elekloader mod for OS 1.17.">
+<style>
+:root {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --ink: #1d1d1f;
+  --muted: #5b5b61;
+  --line: #dcdad4;
+  --accent: #2f6fdb;
+  --accent-ink: #ffffff;
+  --built: #1f7a4d;
+  --built-bg: #e3f3ea;
+  --planned: #8a5a00;
+  --planned-bg: #fbf0d9;
+  --warn-bg: #fdecea;
+  --warn-ink: #8c1d18;
+  --oled: #0b0b0c;
+  --oled-ink: #f2f2f2;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121214;
+    --surface: #1b1b1e;
+    --ink: #ececef;
+    --muted: #a3a3ab;
+    --line: #2e2e33;
+    --accent: #6ea0ff;
+    --accent-ink: #0b0b0c;
+    --built: #7fd6a7;
+    --built-bg: #173326;
+    --planned: #f0c36b;
+    --planned-bg: #3a2e14;
+    --warn-bg: #3b1715;
+    --warn-ink: #ffb4ab;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121214; --surface: #1b1b1e; --ink: #ececef; --muted: #a3a3ab; --line: #2e2e33;
+  --accent: #6ea0ff; --accent-ink: #0b0b0c; --built: #7fd6a7; --built-bg: #173326;
+  --planned: #f0c36b; --planned-bg: #3a2e14; --warn-bg: #3b1715; --warn-ink: #ffb4ab;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--accent); }
+.wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+header.hero { padding: 56px 0 32px; }
+.kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.1; margin: 0 0 16px; letter-spacing: -0.02em; }
+h2 { font-size: 26px; margin: 56px 0 12px; letter-spacing: -0.01em; }
+h3 { font-size: 19px; margin: 32px 0 8px; }
+p.lead { font-size: 19px; color: var(--muted); max-width: 680px; margin: 0 0 20px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.badge { font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.badge.built { color: var(--built); background: var(--built-bg); border-color: transparent; }
+.badge.planned { color: var(--planned); background: var(--planned-bg); border-color: transparent; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; margin-top: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.notice { background: var(--warn-bg); color: var(--warn-ink); border-radius: var(--radius); padding: 14px 18px; font-size: 15px; }
+.notice strong { color: inherit; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+.flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: stretch; }
+.flow .step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-size: 15px; }
+.flow .step b { display: block; margin-bottom: 4px; }
+.flow .arrow { align-self: center; color: var(--muted); font-size: 22px; }
+@media (max-width: 720px) { .flow { grid-template-columns: 1fr; } .flow .arrow { transform: rotate(90deg); justify-self: center; } }
+ol.steps { padding-left: 22px; }
+ol.steps li { margin: 6px 0; }
+kbd { font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 2px 6px; background: var(--surface); white-space: nowrap; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+td.k { font: 700 14px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+td.n { font: 600 14px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+.pagehead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.pagehead h3 { margin-bottom: 0; }
+.screen { display: block; width: 100%; max-width: 512px; height: auto; border-radius: 8px; background: var(--oled); margin: 12px 0 4px; }
+figure { margin: 0; }
+figcaption { font-size: 14px; color: var(--muted); }
+.roadmap td:first-child { white-space: nowrap; font-weight: 600; }
+.scales { columns: 3 180px; font-size: 14px; margin: 8px 0 0; padding-left: 18px; }
+footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">An unofficial Elekloader mod · Digitakt II OS 1.17</p>
+  <h1>EUC+ for Digitakt II</h1>
+  <p class="lead">Melodies for the stock Euclidean sequencer, in the spirit of the Torso T-1. The Digitakt still decides the rhythm. EUC+ decides which note each hit plays: from a scale, along a phrase, with lockable randomness.</p>
+  <div class="badges">
+    <span class="badge built">Current: v0.2</span>
+    <span class="badge">Tested in an emulator</span>
+    <span class="badge planned">Not yet run on a real unit</span>
+    <span class="badge">Off by default on every track</span>
+  </div>
+  <nav class="toc" aria-label="Contents">
+    <a href="#how">How it works</a><a href="#use">Using it</a><a href="#notes">NOTES</a><a href="#random">RANDOM</a>
+    <a href="#groove">GROOVE</a><a href="#voice">VOICE</a><a href="#roadmap">Roadmap</a><a href="#install">Installing</a>
+  </nav>
+</header>
+
+<div class="notice"><strong>Experimental.</strong> EUC+ changes your instrument's firmware. It is not made, supported or endorsed by Elektron. Use it at your own risk, back up your projects first, and know how to recover your unit (<a href="#install">below</a>) before you flash anything.</div>
+
+<h2 id="how">How it works</h2>
+<p>Stock Euclidean mode (<kbd>FUNC</kbd> + <kbd>AMP</kbd>) makes the rhythm from two pulse generators: PL1, PL2, LEN, RO1, RO2, TRO and OP. EUC+ leaves all of that exactly as it is. Each time a Euclidean hit fires, EUC+ replaces the note the hit plays and leaves everything else in it alone.</p>
+<div class="flow" role="img" aria-label="Stock pulses, then EUC+ picks a note, then the hit plays as stock">
+  <div class="step"><b>1 · Stock Euclid</b>Where the hits fall: PL1, PL2, LEN, rotations, OP. The trig keys still light the hits in grid RECORD.</div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="step"><b>2 · EUC+</b>Which note each hit plays: a note from the pool, moved by the phrase and the random sequence, kept in the scale.</div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="step"><b>3 · The hit plays</b>With the track's own sample or MIDI channel, velocity, filter, length and effects, as stock.</div>
+</div>
+<div class="grid2" style="margin-top:16px">
+  <div class="card"><b>What it never does</b><br>It never adds, moves or removes a hit, and never writes pattern data. Switch EUC+ off and the next hit plays the stock note again. Your projects stay compatible with the stock OS.</div>
+  <div class="card"><b>Where it acts</b><br>Only on Euclidean hits, only on tracks where EUC+ is on, and only on steps without parameter locks: a locked step keeps the note you gave it. Audio tracks repitch the sample (NOTE 36–84). MIDI tracks send the note.</div>
+</div>
+
+<h2 id="use">Using it</h2>
+<ol class="steps">
+  <li>On a track, press <kbd>FUNC</kbd> + <kbd>AMP</kbd> to open the stock Euclidean page, and switch <b>EUC</b> on as usual.</li>
+  <li>Press <kbd>FUNC</kbd> + <kbd>AMP</kbd> <b>again</b>: the EUC+ pages open. Opening them changes nothing you can hear.</li>
+  <li>Turn encoder <b>H (ON)</b> to switch EUC+ on for this track. The switch on the left of the screen fills and reads ON.</li>
+  <li>Turn encoders <b>A–H</b> to shape the melody. While a knob turns, the title bar shows its name and value, as on stock pages.</li>
+  <li><kbd>LEFT</kbd> / <kbd>RIGHT</kbd> change page. <kbd>NO</kbd> or <kbd>FUNC</kbd> + <kbd>AMP</kbd> goes back to the stock page. A page key (<kbd>SRC</kbd>, <kbd>FLTR</kbd>, <kbd>AMP</kbd>, <kbd>FX</kbd>, <kbd>MOD</kbd>) leaves for that page.</li>
+  <li><kbd>PLAY</kbd>, <kbd>STOP</kbd>, <kbd>RECORD</kbd>, the trig keys and <kbd>TRK</kbd> + trig keep working while EUC+ is open. The pages follow the active track.</li>
+</ol>
+<p>Every track has its own EUC+ settings. After <kbd>STOP</kbd>, <kbd>PLAY</kbd> starts the riff from its first bar. A pause (<kbd>PLAY</kbd> while playing) and <kbd>PLAY</kbd> again carry on where it was.</p>
+
+<figure>
+<svg class="screen" viewBox="0 0 128 64" role="img" aria-labelledby="scr-notes-t" shape-rendering="crispEdges">
+  <title id="scr-notes-t">The NOTES page with EUC+ on for track 1</title>
+  <rect width="128" height="64" fill="#0b0b0c"/>
+  <!-- the stock pattern box -->
+  <rect x="0.5" y="0.5" width="14" height="9" rx="1.5" fill="none" stroke="#f2f2f2"/>
+  <text x="7.5" y="7.6" font-size="6" fill="#f2f2f2" text-anchor="middle" font-family="ui-monospace,monospace">A01</text>
+  <!-- the title bar -->
+  <rect x="17" y="0" width="111" height="10" rx="1.5" fill="#f2f2f2"/>
+  <text x="20" y="7.6" font-size="6.2" fill="#0b0b0c" font-family="system-ui,sans-serif">EUC+ Notes (1/2)</text>
+  <text x="125" y="7.6" font-size="6.2" fill="#0b0b0c" text-anchor="end" font-family="system-ui,sans-serif">T1</text>
+  <!-- the page box and the ON switch -->
+  <rect x="0.5" y="13.5" width="14" height="23" rx="1.5" fill="none" stroke="#f2f2f2"/>
+  <text x="7.5" y="20.5" font-size="4.4" fill="#f2f2f2" text-anchor="middle" font-family="ui-monospace,monospace">EUC</text>
+  <text x="7.5" y="30" font-size="7" fill="#f2f2f2" text-anchor="middle" font-family="ui-monospace,monospace">1</text>
+  <rect x="2.5" y="40.5" width="10" height="16" rx="1.5" fill="none" stroke="#f2f2f2"/>
+  <rect x="4" y="42" width="7" height="13" fill="#f2f2f2"/>
+  <text x="7.5" y="63.4" font-size="5" fill="#f2f2f2" text-anchor="middle" font-family="ui-monospace,monospace">ON</text>
+  <g font-family="ui-monospace,monospace" font-size="5" fill="#f2f2f2" text-anchor="middle">
+    <!-- row 1: PTCH RNGE PHRS PLEN -->
+    <circle cx="33" cy="21" r="8" fill="none" stroke="#f2f2f2"/><line x1="33" y1="21" x2="34.5" y2="14" stroke="#f2f2f2"/>
+    <text x="33" y="36.6">PTCH</text>
+    <circle cx="59" cy="21" r="8" fill="none" stroke="#f2f2f2"/><line x1="59" y1="21" x2="53" y2="17" stroke="#f2f2f2"/>
+    <text x="59" y="36.6">RNGE</text>
+    <text x="85" y="23.5">RAND</text><text x="85" y="36.6">PHRS</text>
+    <circle cx="111" cy="21" r="8" fill="none" stroke="#f2f2f2"/><line x1="111" y1="21" x2="105.5" y2="26" stroke="#f2f2f2"/>
+    <text x="111" y="36.6">PLEN</text>
+    <!-- row 2: (HARM) SCL ROOT ON -->
+    <text x="59" y="50.5">FLW</text><text x="59" y="63.4">SCL</text>
+    <text x="85" y="50.5">FLW</text><text x="85" y="63.4">ROOT</text>
+    <rect x="103" y="44" width="17" height="9" rx="2" fill="#f2f2f2"/><rect x="113" y="46" width="5" height="5" fill="#0b0b0c"/>
+    <text x="111" y="63.4">ON</text>
+  </g>
+</svg>
+<figcaption>The NOTES page with EUC+ on (a drawing of the 128 × 64 screen). The stock header keeps its pattern box. The page box shows the track. The switch under it shows whether EUC+ drives the track, on every page.</figcaption>
+</figure>
+
+<h2 id="pages">The pages</h2>
+<p>Two pages are in v0.2. Two more are planned. The planned pages are a design, and their names and ranges may change before they are built.</p>
+
+<div class="pagehead"><h3 id="notes">1 · NOTES: which notes the hits play</h3><span class="badge built">v0.2, built</span></div>
+<div class="tablewrap"><table>
+  <thead><tr><th>Knob</th><th>Name</th><th>What it does</th><th>Range</th><th>Default</th></tr></thead>
+  <tbody>
+    <tr><td class="k">A</td><td class="n">PTCH</td><td>Shifts the whole riff up or down, in steps of the scale</td><td>−24 … +24 degrees</td><td>0</td></tr>
+    <tr><td class="k">B</td><td class="n">RNGE</td><td>How far the phrase moves the notes</td><td>0 … 24 degrees</td><td>4</td></tr>
+    <tr><td class="k">C</td><td class="n">PHRS</td><td>The phrase: the melodic shape the notes follow</td><td>RAND, SAW, TRI, SINE, PULS, CAD1–CAD4</td><td>RAND</td></tr>
+    <tr><td class="k">D</td><td class="n">PLEN</td><td>Phrase length: after this many passes of the pattern the riff repeats</td><td>1 … 64 passes</td><td>2</td></tr>
+    <tr><td class="k">E</td><td class="n muted">(HARM)</td><td class="muted">Empty for now. HARM arrives in v0.4</td><td></td><td></td></tr>
+    <tr><td class="k">F</td><td class="n">SCL</td><td>The scale. FLW follows the pattern's own KB SCALE (<kbd>FUNC</kbd> + <kbd>KEYBOARD</kbd>)</td><td>FLW, CHRM (chromatic), or one of 35 scales</td><td>FLW</td></tr>
+    <tr><td class="k">G</td><td class="n">ROOT</td><td>The root note. FLW follows the pattern's ROOT NOTE</td><td>FLW, C … B</td><td>FLW</td></tr>
+    <tr><td class="k">H</td><td class="n">ON</td><td>EUC+ on or off for this track</td><td>OFF, ON</td><td>OFF</td></tr>
+  </tbody>
+</table></div>
+<p class="muted">The notes come from a pool of scale degrees: the root, the 3rd and the 5th for now (the pool keyboard comes in v0.4). With the defaults, a locked RAND phrase over two passes, a track plays a riff that repeats every two passes.</p>
+<details>
+  <summary>The 35 scales (SCL), as the Digitakt II's KB SCALE lists them</summary>
+  <ul class="scales">
+    <li>IONI Ionian (major)</li><li>DORI Dorian</li><li>PHRY Phrygian</li><li>LYDI Lydian</li><li>MIXO Mixolydian</li>
+    <li>AEOL Aeolian (minor)</li><li>LOCR Locrian</li><li>PMIN Pentatonic minor</li><li>PMAJ Pentatonic major</li>
+    <li>MMIN Melodic minor</li><li>HMIN Harmonic minor</li><li>WHOL Whole tone</li><li>BLUE Blues</li>
+    <li>CMIN Combo minor</li><li>PERS Persian</li><li>IWAT Iwato</li><li>INSN In-Sen</li><li>HIRA Hirajoshi</li>
+    <li>PELO Pelog</li><li>PDOM Phrygian dominant</li><li>WHDM Whole-half diminished</li><li>HWDM Half-whole diminished</li>
+    <li>SPAN Spanish</li><li>MLOC Major Locrian</li><li>SLOC Super Locrian</li><li>DOB2 Dorian ♭2</li>
+    <li>LAUG Lydian augmented</li><li>LDOM Lydian dominant</li><li>DHMJ Double harmonic major</li>
+    <li>L#26 Lydian ♯2 ♯6</li><li>UPHR Ultraphrygian</li><li>HUNM Hungarian minor</li><li>ORNT Oriental</li>
+    <li>I#25 Ionian ♯2 ♯5</li><li>LB37 Locrian 𝄫3 𝄫7</li>
+  </ul>
+</details>
+
+<div class="pagehead"><h3 id="random">2 · RANDOM: the riff's random sequence</h3><span class="badge built">v0.2, built</span></div>
+<div class="tablewrap"><table>
+  <thead><tr><th>Knob</th><th>Name</th><th>What it does</th><th>Range</th><th>Default</th></tr></thead>
+  <tbody>
+    <tr><td class="k">A</td><td class="n">VAR</td><td>When unlocked: how much the riff changes on each pass</td><td>0 … 127</td><td>24</td></tr>
+    <tr><td class="k">B</td><td class="n">SEED</td><td>Picks a different random sequence, and so a different riff</td><td>0 … 255</td><td>1</td></tr>
+    <tr><td class="k">C</td><td class="n">LOCK</td><td>ON keeps the riff exactly the same, pass after pass</td><td>OFF, ON</td><td>ON</td></tr>
+    <tr><td class="k">D</td><td class="n">RAMT</td><td>How much random pitch is added to each note</td><td>0 … 24 degrees</td><td>3</td></tr>
+    <tr><td class="k">E–H</td><td class="n muted">—</td><td class="muted">Reserved. A RATE control (how often random values step, 1/16 … 4 bars) is planned</td><td></td><td></td></tr>
+  </tbody>
+</table></div>
+
+<div class="pagehead"><h3 id="groove">GROOVE: velocity, chance and repeats</h3><span class="badge planned">Planned for v0.3</span></div>
+<div class="tablewrap"><table>
+  <thead><tr><th>Knob</th><th>Name</th><th>What it will do</th></tr></thead>
+  <tbody>
+    <tr><td class="k">A</td><td class="n">PROB</td><td>Chance a hit is skipped. Bipolar: + can skip any hit, − skips only generated pulses</td></tr>
+    <tr><td class="k">B</td><td class="n">ACC</td><td>Accent depth, around the trig's own velocity</td></tr>
+    <tr><td class="k">C</td><td class="n">GRV</td><td>Accent shape: SAW, TRI, SINE, PULS, EUC3 (a third Euclidean pattern, for accents only), RAND</td></tr>
+    <tr><td class="k">D</td><td class="n">GLEN</td><td>Length of the accent shape in bars, or EUC3's pulse count</td></tr>
+    <tr><td class="k">E</td><td class="n">REP</td><td>Repeats on a hit, 0 … 8, through the stock retrig</td></tr>
+    <tr><td class="k">F</td><td class="n">RTIM</td><td>Repeat rate</td></tr>
+    <tr><td class="k">G</td><td class="n">RAMP</td><td>Velocity ramp over the repeats</td></tr>
+    <tr><td class="k">H</td><td class="n">PACE</td><td>Reserved: needs timing finer than a step</td></tr>
+  </tbody>
+</table></div>
+
+<div class="pagehead"><h3 id="voice">VOICE: chords and arpeggios</h3><span class="badge planned">Planned for v0.4</span></div>
+<div class="tablewrap"><table>
+  <thead><tr><th>Knob</th><th>Name</th><th>What it will do</th></tr></thead>
+  <tbody>
+    <tr><td class="k">A</td><td class="n">VOIC</td><td>Voicing: how many chord notes each hit plays (full chords on MIDI tracks)</td></tr>
+    <tr><td class="k">B</td><td class="n">STYL</td><td>Style: Fixed, Ramp, Climb, UpDn, ClUD</td></tr>
+    <tr><td class="k">C</td><td class="n">POLY / MONO</td><td>A chord, or its notes one after another (a mono arpeggio on audio tracks)</td></tr>
+    <tr><td class="k">D</td><td class="n">DIR</td><td>Direction: up or down</td></tr>
+    <tr><td class="k">E–H</td><td class="n muted">—</td><td class="muted">Reserved</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="roadmap">Roadmap</h2>
+<div class="tablewrap"><table class="roadmap">
+  <thead><tr><th>Version</th><th>What it adds</th><th>State</th></tr></thead>
+  <tbody>
+    <tr><td>v0.1</td><td>The note engine: a 1-3-5 pool, phrase × range, a seeded, lockable random sequence, the pattern's KB SCALE and ROOT, on audio and MIDI tracks. Off by default</td><td><span class="badge built">Done</span></td></tr>
+    <tr><td>v0.2</td><td>The EUC+ pages (NOTES and RANDOM), opened from the stock Euclidean page. A per-track ON switch. SCL and ROOT of EUC+'s own. The riff restarts on PLAY. Screens in the stock page layout</td><td><span class="badge built">Done, emulator-tested</span> <span class="badge planned">Hardware test next</span></td></tr>
+    <tr><td>v0.3</td><td>The GROOVE page. <b>Saving the settings</b> (today they reset at power-on). The T-1 random gesture: hold <kbd>FUNC</kbd> and turn any knob to set its random amount, <kbd>FUNC</kbd> + push to lock it</td><td><span class="badge planned">Next</span></td></tr>
+    <tr><td>v0.4</td><td>The VOICE page. The pool keyboard: hold <kbd>FUNC</kbd> on NOTES and the trig keys choose the scale degrees, with in-scale keys lit. HARM. <b>COMMIT</b> (<kbd>FUNC</kbd> + <kbd>YES</kbd>): write EUC+'s notes into p-locks on the stock trigs, the one deliberate way it changes a pattern</td><td><span class="badge planned">Planned</span></td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="limits">Known limits in v0.2</h2>
+<ul>
+  <li>Settings live in memory and reset at power-on. Saving them is v0.3.</li>
+  <li>Steps with any parameter lock keep their stock note.</li>
+  <li>Digitakt II <b>OS 1.17 only</b>. Another OS version means finding every address again.</li>
+  <li>Not yet run on a real unit. Audio-track repitching has not been checked by ear yet.</li>
+</ul>
+
+<h2 id="install">Installing</h2>
+<p>There is no ready-made download. The built OS file contains Elektron's firmware, so it cannot be shared. You build it yourself, on your own computer, from the stock OS file Elektron publishes, with the <a href="https://github.com/elekloader/elekloader">Elekloader</a> tools. Source and build steps are in the project's repository.</p>
+<div class="card">
+  <b>Before you flash: rehearse recovery</b>
+  <ol class="steps" style="margin-bottom:0">
+    <li>Back up your projects, sounds and samples with Elektron Transfer.</li>
+    <li>Connect a known-good <b>5-pin DIN MIDI</b> interface to the Digitakt's MIDI IN. USB is not heard by the recovery menu, and some cheap USB-MIDI cables send nothing at all.</li>
+    <li>Hold <kbd>FUNC</kbd> while powering on, press <kbd>TRIG 4</kbd> (never TRIG 2 or 3: they erase data), and send the stock OS 1.17 file from Transfer over DIN. Do this once with the stock file before you ever need it.</li>
+    <li>Never power off during an update. Afterwards, check the version the unit shows.</li>
+  </ol>
+</div>
+<p class="muted">Please do not post or ask about firmware mods on Elektronauts: Elektron's policy since 16 September 2026 does not allow it.</p>
+
+<footer>
+  EUC+ is free software under the GPL-2.0-or-later. It is not affiliated with, endorsed or supported by Elektron; Digitakt is Elektron's trademark. The Torso T-1 is named only as the design reference. Contains no Elektron firmware.
+</footer>
+</div>
+</body>
+</html>

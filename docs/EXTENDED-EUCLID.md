@@ -282,7 +282,7 @@ second TRIG page is the closest model for tier C above.
   frames identical until the mod's own gesture. That proves "off by default" (to do).
 - A bit-exact regression check of the engine against a git revision (`git archive` of the old
   `eucplus.c`, the same corpus, compare hashes) before refactoring the note maths (to do).
-- A four-character OS version per hardware test build, so device reports name a build (to do:
-  bump `EUP1` per build).
+- A four-character OS version per hardware test build, so device reports name a build
+  (**adopted:** `EUP_OS_VERSION`, `E201` for the first; PLAN.md "Hardware builds").
 - Redraw only when what the page shows changed; step aside for stock toasts and dialogs (to do,
   with the view-stack check).

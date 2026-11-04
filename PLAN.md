@@ -129,6 +129,33 @@ brackets):
 7. **Also check after a long power-off** (minutes, not a quick restart): one Octatrack change booted
    in the emulator and in quick power cycles, then stalled at the logo after minutes off (A40).
 
+## Hardware builds
+
+One row per build sent to a unit; never reuse a version. Build with
+`EUP_OS_VERSION=<version> bash tools/build_eucplus.sh` and rename the file to
+`Digitakt_II_OS1.17_EUCPLUS_<version>.syx`.
+
+| Version | Source | SHA-256 of the `.syx` | What it is | Result |
+|---|---|---|---|---|
+| E201 | v0.2 as of 2026-11-04 (`e12515c` + build script) | `a17115e8fc870730fe354a069e2d83728380dd14f41447f466ddf2b8907e9406` | v0.2: the NOTES and RANDOM pages, per-track ON, phrase reset on PLAY | waiting |
+
+**What to try on E201**, in order (stop at the first failure and note what the screen shows):
+1. It boots to the main screen. SETTINGS > SYSTEM shows the OS version as E201.
+2. A track you already use plays exactly as before. EUC+ is off by default.
+3. On a Euclid track (FUNC + AMP, EUC on, PL1 = 5): FUNC + AMP again opens EUC+ (`EUC+ Notes (1/2)`).
+   The notes are still stock.
+4. Turn H: the switch on the left fills, and the hits play new notes in the pattern's KB SCALE.
+   Turn H back: stock notes.
+5. Turn PTCH, SCL and ROOT while playing: the title shows each value, and the notes change.
+6. RIGHT: the RANDOM page. LOCK off, then VAR up: the riff changes on each pass.
+7. STOP, then PLAY: the riff starts from its first bar.
+8. NO, and a page key (SRC): both leave EUC+ for the stock page.
+9. On an **audio** track, by ear: the hits repitch within the scale.
+10. Power off for a few minutes, then on: it boots. The settings are back at their defaults, which is
+    expected in v0.2.
+
+Photos, or Elek View screen captures, of steps 3, 4 and 6 help.
+
 ## What I need from you
 
 - **Hardware tests** when a build is ready: flash with Elektron Transfer and report back (photos of

@@ -23,6 +23,10 @@ HWR_SHA=e56b2e4e18af9e34c82a9596af377d8d0f3e37ebb02e7b1eae489c7f285930ec
 
 say() { printf '\n== %s\n' "$*"; }
 
+say "git identity (commits by joesciii, co-authored by Claude in each message)"
+git -C "$REPO" config user.name joesciii
+git -C "$REPO" config user.email 67607012+joesciii@users.noreply.github.com
+
 say "toolchain (apt)"
 if ! command -v m68k-linux-gnu-gcc >/dev/null || ! pkg-config --exists alsa 2>/dev/null; then
     apt-get install -y -q gcc-m68k-linux-gnu binutils-m68k-linux-gnu libasound2-dev pkg-config poppler-utils \

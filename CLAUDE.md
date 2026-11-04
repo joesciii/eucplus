@@ -37,6 +37,8 @@ and how to set up a session.
 - Hardware builds: one change per build, a named file with its SHA-256, a four-character version and a
   list of what to try (PLAN.md, "Flashing a test build"). After two failed flashes on one problem, stop
   and re-plan.
+- Commits are authored by `joesciii <67607012+joesciii@users.noreply.github.com>` (set by
+  `tools/setup_env.sh`), with Claude as co-author in the message.
 - Community rules and device facts: [Aggregat](https://github.com/70b185/Aggregat)'s
   `hardware/AGENT-RULES.md` and `hardware/devices/digitakt-2.md` (second-hand: check before relying on
   them).
