@@ -281,7 +281,11 @@ used by EUC+ except the two checks.
   masked; the watchdog is unused.
 - **Recovery has been used on a Digitakt II** `[hw]` (dt2-machine-lab, 2026-10-06, OS 1.16): the
   startup menu over DIN MIDI from a known-good interface restored the unit after a crashing build.
-  A generic USB-MIDI cable adapter (VID 1a86, PID 752d) delivered nothing.
+  A generic USB-MIDI cable adapter (VID 1a86, PID 752d) delivered nothing. A second source
+  (own-dt2-notes, `[hw]`) used the same recovery throughout its SHARC work, and reports bootstrap
+  0x0201 on both 1.16 and 1.17.
+- **Screen capture over SysEx** `[doc]` {elek-view}: a screen request in the `F0 00 20 3C 10 00` RPC
+  framing (Elek View, a browser port of screendump) works on a Digitakt II.
 - **Memory** `[emu]` (digitakt-ii-research and dt2-machine-lab, DT2 **1.16**; resolve on 1.17 first):
   - the OS clears `0x40312000-0x47e28470` at reset;
   - the firmware heap is a 32 MiB buddy heap at `0x44f39c40`;

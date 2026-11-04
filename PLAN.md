@@ -107,8 +107,10 @@ brackets):
 1. **Rehearse recovery with the stock file first** (A2, A11, A36). Hold FUNC at power-on, press TRIG 4
    (never TRIG 2 or 3: they erase data, A17), and send the stock 1.17 `.syx` from Transfer's SYSEX
    TRANSFER page over **5-pin DIN MIDI**. USB is not heard there.
-   - One Digitakt II has been recovered this way, over DIN from a known-good interface
-     (dt2-machine-lab, OS 1.16).
+   - Digitakt IIs have been recovered this way, over DIN from a known-good interface: once by
+     dt2-machine-lab (OS 1.16), and repeatedly in one researcher's own SHARC work. That researcher
+     also reports the bootstrap (0x0201) is the same on 1.16 and 1.17, so moving between them
+     is reversible (Aggregat, `[hw]`).
    - A generic cheap "USB2.0-MIDI" cable (VID 1a86, PID 752d) delivered nothing. Use a known-good
      interface, and send a stock file through it once before you need it.
 2. **Back up** projects, sounds and samples with Transfer (A3).
@@ -121,7 +123,10 @@ brackets):
 5. **If it hangs:** a ColdFire fault halts the unit until power is cycled, because the watchdog is
    unused (digikit finding 37). Note any `EXCEPTION` or `V04 M0 P...` text on the screen, power-cycle,
    and recover with step 1. After **two failed flashes on the same problem we stop** and re-plan (G6).
-6. **Also check after a long power-off** (minutes, not a quick restart): one Octatrack change booted
+6. **Screens:** besides photos, [Elek View](https://github.com/70b185/Aggregat) (a browser port of
+   screendump, listed by Aggregat) reads the screen over USB SysEx and was tested on a Digitakt II.
+   An exact capture of the EUC+ page can then be compared with the emulator's.
+7. **Also check after a long power-off** (minutes, not a quick restart): one Octatrack change booted
    in the emulator and in quick power cycles, then stalled at the logo after minutes off (A40).
 
 ## What I need from you
