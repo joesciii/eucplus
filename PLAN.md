@@ -123,7 +123,7 @@ brackets):
 5. **If it hangs:** a ColdFire fault halts the unit until power is cycled, because the watchdog is
    unused (digikit finding 37). Note any `EXCEPTION` or `V04 M0 P...` text on the screen, power-cycle,
    and recover with step 1. After **two failed flashes on the same problem we stop** and re-plan (G6).
-6. **Screens:** besides photos, [Elek View](https://github.com/70b185/Aggregat) (a browser port of
+6. **Screens:** besides photos, [Elek View](https://github.com/BlueSGL/Elek_View) (a browser port of
    screendump, listed by Aggregat) reads the screen over USB SysEx and was tested on a Digitakt II.
    An exact capture of the EUC+ page can then be compared with the emulator's.
 7. **Also check after a long power-off** (minutes, not a quick restart): one Octatrack change booted
