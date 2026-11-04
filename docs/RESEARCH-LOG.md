@@ -259,6 +259,20 @@ checked here by drawing from `ev_draw` and reading the frame:
   buf2)`, vtable `0x4021cff0`). The frame `ev_draw` gets has vtable `0x4021cff8` and a second
   pointer at `+0x14` (`0x40966ad8`). They are probably two classes; not followed.
 
+## The trig LEDs in Euclid mode (verified in the emulator, 2026-11-04)
+
+Read with digikit's `leds.get` (one byte per LED; index = digikit's `devices/digitakt-ii-leds.toml`
+`led`: TRIG n = 24 + n, RECORD 9; value = colour bits 4-7, mode bits 0-3, `0x01` off), track 1 with
+EUC on and PL1 = 5:
+- **Grid RECORD off:** the trig keys show no hits, only the selected track's key (`0x06`) and, while
+  playing, the playhead (`0x11` red; `0x71` on a hit). The same on the Euclid, TRIG and SRC pages.
+- **Grid RECORD on:** RECORD and the generated hits light `0x85` (bit 7, mode 5): TRIG 1, 5, 8, 11 and
+  14, the steps the generator makes (0, 4, 7, 10, 13). This is the manual's "With the mode on, [REC]
+  and the generated trigs light blue". `0x85` is the colour bit digikit's table had not seen on the
+  wire; on the unit it is presumably the blue the manual names.
+- **With EUC+ open and ON** the LEDs are byte for byte the same, stopped and playing: EUC+ leaves
+  the pulse generator and its hits alone. It changes only the notes the hits play.
+
 ## Build checks and facts from Aggregat (2026-11-03)
 
 [Aggregat](https://github.com/70b185/Aggregat) collects the community's rules and device facts. It is
