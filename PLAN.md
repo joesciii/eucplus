@@ -140,10 +140,12 @@ One row per build sent to a unit; never reuse a version. Build with
 | E201 | v0.2 as of 2026-11-04 (`e12515c` + build script) | `a17115e8fc870730fe354a069e2d83728380dd14f41447f466ddf2b8907e9406` | v0.2: the NOTES and RANDOM pages, per-track ON, phrase reset on PLAY | waiting. Audio-track repitch: **two emulator results disagree** (2026-11-05: none in the cloud; correct notes in the Mac desktop app; research log); MIDI tracks do |
 
 **What to try on E201**, in order (stop at the first failure and note what the screen shows):
-1. It boots to the main screen. SETTINGS > SYSTEM shows the OS version as E201.
+1. It boots to the main screen. The OS version reads E201. (Not shown in SETTINGS > SYSTEM in the
+   emulator, where only the USB query found it; note where the unit shows it.)
 2. A track you already use plays exactly as before. EUC+ is off by default.
 3. On a Euclid track (FUNC + AMP, EUC on, PL1 = 5): FUNC + AMP again opens EUC+ (`EUC+ Notes (1/2)`).
-   The notes are still stock.
+   The notes are still stock. Use a track without p-locks on its grid (or clear its sequence first,
+   then set EUC and PL1 again: a clear resets them): hits that pick up a grid lock stay stock.
 4. Turn H: the switch on the left fills, and the hits play new notes in the pattern's KB SCALE.
    Turn H back: stock notes.
 5. Turn PTCH, SCL and ROOT while playing: the title shows each value, and the notes change.

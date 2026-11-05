@@ -56,7 +56,11 @@ augmented, dominant) DHMJ (double harmonic major) L#26 UPHR HUNM ORNT I#25 LB37 
 On a track with both stock Euclidean mode and EUC+ on, each generated hit on a step with no
 parameter locks gets a note chosen by EUC+ instead of the track's NOTE:
 
-- **Pool:** scale degrees to pick from, 1-3-5 (the pool keyboard is v0.4).
+- **Pool:** scale degrees to pick from, 1-3-5 (the pool keyboard is v0.4), one per hit in turn:
+  with four pulses the 4th hit is the root again. These are scale *positions*: in a seven-note
+  scale a triad, in a pentatonic the root, 4th and minor 7th (D minor pentatonic: D G C).
+  With PTCH, RNGE and RAMT at 0 and PLEN 1, every pass is the pool in order from the root; with a
+  longer PLEN the starting point moves from pass to pass.
 - **Scale and root:** SCL / ROOT, by default the pattern's own **KB SCALE / ROOT NOTE**
   (FUNC + KEYBOARD). CHROMATIC allows every semitone.
 - **Phrase × RANGE:** melodic movement over PLEN pattern passes.

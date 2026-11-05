@@ -165,8 +165,12 @@ PY
   OS UPGRADE's screen.
 - **Sound check:** on the main screen TRIG 1 plays track 1, a 1 kHz tone (measured: 1008 Hz, all the
   energy in that bin).
+- **The test card's pattern is the factory demo** (A01 "WAXSAFETY"), with a p-lock on track 1's
+  step 1: in Euclid mode that hit stays on the stock note (EUC+ leaves locked hits alone). Clear the
+  track's sequence first, then switch EUC on and set PL1 again (the clear resets them).
 - Then follow the hardware test list in [PLAN.md](../../PLAN.md) ("Hardware builds"). On stock
-  parameters the encoders want several ticks per step, as on the unit (EUC's switch about 40).
+  parameters the encoders want several ticks per step, as on the unit (EUC's switch about 40, PL1
+  about 12 per step when turned slowly; fast turns accelerate).
 - On quitting, the app exports the firmware's changes to the card back into `~/dt2lab/samples`.
 - Later sessions: only step 6 (the builds and states are cached).
 

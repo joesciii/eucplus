@@ -312,6 +312,56 @@ booted, the DSP core in use, how the EUC+ settings were set, and the scale. **No
 audio track other than track 1, and the unit itself (E201 test list, step 9). Until one of those
 settles it, treat audio repitching on E201 as **unconfirmed, likely working**.
 
+## Locked hits, Clear Sequence and the test card's pattern (verified in the emulator, 2026-11-05)
+
+Same setup as the previous section (digikit's desktop app on a Mac, E201 cold-loaded onto stock
+1.17, the 1 kHz test card). Notes read from EUC+'s own log and checked against the audio.
+
+**EUC+'s log in E201.** `eup_log` (64 records of 8 bytes: track, step, src, note_in, note_out,
+degree_lo, pass_lo, flags; flags 1 Euclid, 2 locked, 4 changed, 8 MIDI) is at **`0x47f01eb0`** in this
+build. There was no symbol map on the Mac: found by reading Elekloader's RAM `0x47f00000-0x47f40000`
+with `mem.cf.peek` (one longword per call, about 2 minutes) and looking for runs of records with
+track 0, flag 1 and note_in 60. The longword after the 64 records read 0 while hits were logged, so
+`eup_seq` is not there; order the records by `pass_lo` and step instead. **[V]** Other builds move
+it: use the build's map (`eucplus.syx.map.json`) when there is one.
+
+**The test card's pattern has a p-lock on track 1.** digikit's card project is the firmware's
+built-in factory project (`packages/emulator/plusdrive/src/project.rs`: "kit 0 of the built-in
+project is a factory demo kit"); pattern A01 is named WAXSAFETY. With EUC on, PL1 = 4 (hits on steps
+3, 7, 11, 15 at the time), EUC+ ON, SCL PMIN, ROOT D#, every pass logged:
+- the hit from source step 1 (`src 0`): flags **Euclid + locked**, note_in **135**, note_out 135, and
+  the audio a **C4** (the track's stock NOTE 60, measured 996 Hz), not in the scale;
+- the other three: Euclid + changed, 60 → 68, 73, 63 (G#4, C#5, D#4 measured).
+
+So stock Euclid applies the source grid's p-locks to the hits in order, even though the grid's own
+trigs do not play, and EUC+ leaves those hits stock, as designed. The event's note byte on that
+locked fire is 135 (not a MIDI note); what the firmware means by it was not followed. **[V]**
+
+**Clear Sequence also clears Euclid.** After the user's Clear Sequence ("Cleared 1 sequence!"),
+track 1 fired nothing for 4.5 s of play: EUC was off and PL1 0 (Euclid's settings are part of the
+track's sequence), and the pattern's name read UNTITLED. EUC+'s own settings (ON, SCL, ROOT …) were
+kept. **[V]**
+
+**After the clear, every hit is changed.** EUC on, PL1 = 4 (hits on steps 1, 5, 9, 13), EUC+ ON, SCL
+PMIN, ROOT D, PTCH / RNGE / RAMT 0, two passes logged: all eight fires Euclid + changed, none locked,
+notes **62, 67, 72, 62** (D4, G4, C5, D4); the audio peaks at 1125, 1500 and 2004 Hz. Together with
+the locked case above, this checks EUC+'s lock test both ways: a lock skips the hit, no lock
+changes it. **[V]**
+
+**The pool in a pentatonic scale.** The pool 1-3-5 is scale *positions*, so in a five-note scale it is
+root, 4th and minor 7th (D minor pentatonic: D, G, C), not a triad. With four pulses the 4th hit wraps
+to the root. With PTCH turned down and RNGE up the user got 37, 39, 46, 46 (C#2 D#2 A#2 A#2, ROOT
+D#): all in the scale, two hits on the same degree from the phrase, near the audio floor (36) where
+notes fold up an octave. **[V]** (log)
+
+**Encoders in the emulator** (`input.turn`, one detent per call, 0.25 s apart): stock PL1 moves one
+step per about 12 detents turned slowly; 60 detents turned quickly took it from 0 to 12. A change of
+direction starts the count again. EUC+'s ROOT moves one note per detent; ON (H) switched with 5. **[V]**
+
+**Where the OS version shows.** Not in SETTINGS > SYSTEM (USB CONFIG, OS UPGRADE, FORMAT +DRIVE,
+CHECK FILESYSTEM, STORAGE), and not on OS UPGRADE's screen. Over USB, MidiRpc SoftwareVersion (type
+`0x02`) answers the strings `0082` and `E201`. **[V]** Where the unit shows it on screen is not known.
+
 ## The trig LEDs in Euclid mode (verified in the emulator, 2026-11-04)
 
 Read with digikit's `leds.get` (one byte per LED; index = digikit's `devices/digitakt-ii-leds.toml`
