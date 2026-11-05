@@ -337,10 +337,12 @@ So stock Euclid applies the source grid's p-locks to the hits in order, even tho
 trigs do not play, and EUC+ leaves those hits stock, as designed. The event's note byte on that
 locked fire is 135 (not a MIDI note); what the firmware means by it was not followed. **[V]**
 
-**Clear Sequence also clears Euclid.** After the user's Clear Sequence ("Cleared 1 sequence!"),
-track 1 fired nothing for 4.5 s of play: EUC was off and PL1 0 (Euclid's settings are part of the
-track's sequence), and the pattern's name read UNTITLED. EUC+'s own settings (ON, SCL, ROOT …) were
-kept. **[V]**
+**After a Clear Sequence, Euclid was off (cause not established).** After the user's Clear Sequence
+("Cleared 1 sequence!"), track 1 fired nothing for 4.5 s of play, and the Euclid page read EUC off,
+PL1 0, PL2 0; the pattern's name read UNTITLED. EUC+'s own settings (ON, SCL, ROOT …) were kept.
+**[V]** The Euclid page was not looked at just before the clear, and the user may have switched EUC
+off by hand first, so **whether Clear Sequence resets Euclid is not known**. To settle it: EUC on with
+PL1 set, Clear Sequence, then read the Euclid page.
 
 **After the clear, every hit is changed.** EUC on, PL1 = 4 (hits on steps 1, 5, 9, 13), EUC+ ON, SCL
 PMIN, ROOT D, PTCH / RNGE / RAMT 0, two passes logged: all eight fires Euclid + changed, none locked,
