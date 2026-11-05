@@ -309,7 +309,9 @@ earlier result (previous section) was a different setup: digikit's coupled emula
 cloud session, E201 "loaded as a file (a coupled cold boot, the DSP kept)", NOTE poked at `+1157` for
 the control, SCL IONI and ROOT C. Not known which difference matters; candidates: how E201 was
 booted, the DSP core in use, how the EUC+ settings were set, and the scale. **Not yet checked:** the same measurement with SCL IONI / ROOT C, an
-audio track other than track 1, and the unit itself (E201 test list, step 9). Until one of those
+audio track other than track 1, and the unit itself (E201 test list, step 9). *Later the same day, by
+ear (the user, same setup, track 1):* with SCL IONI and ROOT C the hits still repitch, so the scale is
+probably not the difference; not measured. Until one of those
 settles it, treat audio repitching on E201 as **unconfirmed, likely working**.
 
 ## Locked hits, Clear Sequence and the test card's pattern (verified in the emulator, 2026-11-05)
