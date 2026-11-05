@@ -145,7 +145,8 @@ One row per build sent to a unit; never reuse a version. Build with
 2. A track you already use plays exactly as before. EUC+ is off by default.
 3. On a Euclid track (FUNC + AMP, EUC on, PL1 = 5): FUNC + AMP again opens EUC+ (`EUC+ Notes (1/2)`).
    The notes are still stock. Use a track without p-locks on its grid (or clear its sequence first,
-   then check EUC and PL1 are still set): hits that pick up a grid lock stay stock.
+   then set EUC and PL1 again: FUNC + CLEAR resets Euclid's pulses to 0): hits that pick up a grid
+   lock stay stock.
 4. Turn H: the switch on the left fills, and the hits play new notes in the pattern's KB SCALE.
    Turn H back: stock notes.
 5. Turn PTCH, SCL and ROOT while playing: the title shows each value, and the notes change.

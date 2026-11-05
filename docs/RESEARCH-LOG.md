@@ -342,9 +342,9 @@ locked fire is 135 (not a MIDI note); what the firmware means by it was not foll
 **After a Clear Sequence, Euclid was off (cause not established).** After the user's Clear Sequence
 ("Cleared 1 sequence!"), track 1 fired nothing for 4.5 s of play, and the Euclid page read EUC off,
 PL1 0, PL2 0; the pattern's name read UNTITLED. EUC+'s own settings (ON, SCL, ROOT …) were kept.
-**[V]** The Euclid page was not looked at just before the clear, and the user may have switched EUC
-off by hand first, so **whether Clear Sequence resets Euclid is not known**. To settle it: EUC on with
-PL1 set, Clear Sequence, then read the Euclid page.
+**[V]** The Euclid page was not looked at just before that clear. **Settled later the same day by the
+user** (by hand in the same emulator, stock behaviour): **FUNC + CLEAR (Clear Sequence) resets
+Euclid**, setting the pulses to 0. Set EUC and PL1 again after a clear.
 
 **After the clear, every hit is changed.** EUC on, PL1 = 4 (hits on steps 1, 5, 9, 13), EUC+ ON, SCL
 PMIN, ROOT D, PTCH / RNGE / RAMT 0, two passes logged: all eight fires Euclid + changed, none locked,

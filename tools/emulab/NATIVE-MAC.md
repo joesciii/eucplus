@@ -176,7 +176,8 @@ PY
   energy in that bin).
 - **The test card's pattern is the factory demo** (A01 "WAXSAFETY"), with a p-lock on track 1's
   step 1: in Euclid mode that hit stays on the stock note (EUC+ leaves locked hits alone). Clear the
-  track's sequence first, then check EUC is on and PL1 set on the Euclid page.
+  track's sequence first (FUNC + CLEAR), then set EUC and PL1 again: the clear resets Euclid's
+  pulses to 0.
 - Then follow the hardware test list in [PLAN.md](../../PLAN.md) ("Hardware builds"). On stock
   parameters the encoders want several ticks per step, as on the unit (EUC's switch about 40, PL1
   about 12 per step when turned slowly; fast turns accelerate).
