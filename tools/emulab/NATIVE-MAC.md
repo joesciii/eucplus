@@ -129,9 +129,16 @@ open; the first launch builds it, about 2 minutes, and prints `control socket: .
 
 ```sh
 cd "$DT2LAB/digikit"
-mise exec -- uv run python -m tools.emulator.native_emu --no-runtime \
+mise exec -- uv run python -m tools.emulator.native_emu --no-runtime --no-sync \
   --plus-drive "$DT2LAB/samples" firmware/Digitakt_II_OS1.17.syx
 ```
+
+**`--no-sync` matters too:** without it, quitting the app saves the firmware's writes to the card
+(`out/plusdrive/native/<card>/overlay.bin`) and the next launch puts them back. Stock still starts
+then, but the cold boot of E201 below fails with `not ready after 3000000000 instructions ...
+ready false` (its file-system check never finishes). If that happens, quit the app, move that
+`overlay.bin` out of the way, and start again. With `--no-sync` every session starts from the
+fresh card (and the demo pattern, below).
 
 In a second Terminal (`source ~/dt2lab/env.sh` first), load E201 into it (about 11 seconds):
 
@@ -147,12 +154,14 @@ r = emu.call('firmware.load', syx=sys.argv[1], start='cold')
 print('loaded', r['syx_sha256'][:16], 'runtime:', emu.status()['firmware']['runtime'])
 while not emu.status()['cf'].get('main_ui_reached'):
     time.sleep(1)
-for _ in range(10):                      # USB answers a few seconds after the main screen
+for _ in range(30):                      # USB can take a while to answer after the boot
     emu.usb_out(); emu.usb_in(devrpc.build_request(0x02)); time.sleep(1.5)
     out = emu.usb_out(); i = out.find(bytes.fromhex('f000203c10'))
     if i >= 0 and 0xf7 in out[i:]:
         print('version:', devrpc.parse_reply(out[i:out.index(0xf7, i) + 1])[1])   # E201: b'0082\x00E201\x00'
         break
+else:
+    print('no version answer over USB yet; the load itself worked (the sha256 above is E201)')
 PY
 ```
 
@@ -171,7 +180,8 @@ PY
 - Then follow the hardware test list in [PLAN.md](../../PLAN.md) ("Hardware builds"). On stock
   parameters the encoders want several ticks per step, as on the unit (EUC's switch about 40, PL1
   about 12 per step when turned slowly; fast turns accelerate).
-- On quitting, the app exports the firmware's changes to the card back into `~/dt2lab/samples`.
+- With `--no-sync`, nothing you do on the device (saved projects, cleared patterns) is kept after
+  you quit: each session starts from the same card.
 - Later sessions: only step 6 (the builds and states are cached).
 
 ## Removing it
