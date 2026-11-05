@@ -4,3 +4,5 @@
 firmware/
 out/
 mods/*/out/
+__pycache__/
+*.pyc
