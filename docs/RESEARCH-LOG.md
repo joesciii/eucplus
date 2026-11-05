@@ -261,6 +261,10 @@ checked here by drawing from `ev_draw` and reading the frame:
 
 ## Audio tracks do not repitch from EUC+'s note (verified with the real DSP, 2026-11-05)
 
+> **Contradicted** by a later measurement on a Mac the same day (next section): there the audio track
+> did repitch to EUC+'s notes. The cause of the difference is not known; this section is kept as
+> the evidence it was.
+
 Tested in digikit's coupled emulator (ColdFire and the real SHARC DSP), with a +Drive card holding a
 1 kHz sine (digikit's `dt2_sample_check` card; the card's project plays it on track 1), build E201
 loaded as a file (a coupled cold boot, the DSP kept), track 1 an audio track with EUC on (hits at
@@ -277,6 +281,36 @@ fire.** It comes from the track's NOTE by another path. On MIDI tracks `+38` is 
 e2e test). The fire copies `+1157` into `+38` at `0x400d6d3c` (audio) and `0x400d71ea` (MIDI). Other
 readers of `+1157`: `0x4002e3a4`, `0x40053db6`, `0x40058c32`, `0x4012cd6a`, `0x4013a15e` (not yet
 followed). **Open:** find what the audio voice's pitch is computed from, and where EUC+ can set it.
+
+## Audio tracks do repitch from EUC+'s note in digikit's desktop app (verified with the real DSP, 2026-11-05)
+
+First noticed by ear by the user, then measured. Setup (tools/emulab/NATIVE-MAC.md, as corrected in
+`8ee96d2`): digikit `9a0ddda`'s desktop app (`tools.emulator.native_emu --no-runtime`, live, the fast
+DSP core `out/native/dt2-audio/gen` from `aot_gen dt2`), started on stock 1.17 with a +Drive folder
+holding only digikit's `test-sine-1khz.wav` (48 kHz mono, 1 s; the card's ready state
+`by-card/1c1fed346ea9`), then **E201** loaded with `firmware.load {start: cold}` (status:
+`syx_sha256 a17115e8…`, `runtime: null`; USB SoftwareVersion `E201`). Apple Silicon, macOS 26.6.2.
+
+Track 1, an audio track playing the sine, EUC on, the pattern playing (run state `0x43164f94` = 1).
+EUC+ NOTES page: PTCH 0, RNGE 0, PHRS RAND, SCL **PMIN**, ROOT FLW; RANDOM RAMT 0. The ON switch (H)
+was turned through the panel encoder (`input.turn`). PCM captured with `pcm.tap capture`, left channel,
+cut into 4096-sample windows (85 ms; FFT bins 11.7 Hz apart), silent windows (RMS < 0.003) dropped,
+the peak bin of each window counted:
+- **EUC+ OFF** (6 s): 996 Hz in all 59 windows. The stock note (1 kHz) only.
+- **EUC+ ON** (8 s, the same pattern straight after): 996 Hz in 46 windows, **1336 Hz** in 17,
+  **1781 Hz** in 17.
+- Expected for the pool 1-3-5 in pentatonic minor (0 3 5 7 10) with every movement at 0: degrees 0,
+  2, 4 = +0, +5, +10 semitones = 1000, 1335 and 1782 Hz. The measured peaks are those three, within
+  one bin. (The 1 s sample overlaps the next hits, so the root's windows are not a count of hits.)
+- After switching H back OFF, the screen reads OFF again.
+
+So on this setup **the audio voice takes its pitch from the event's `+38` as EUC+ leaves it**. The
+earlier result (previous section) was a different setup: digikit's coupled emulator in the Linux
+cloud session, E201 "loaded as a file (a coupled cold boot, the DSP kept)", NOTE poked at `+1157` for
+the control, SCL IONI and ROOT C. Not known which difference matters; candidates: how E201 was
+booted, the DSP core in use, how the EUC+ settings were set, and the scale. **Not yet checked:** the same measurement with SCL IONI / ROOT C, an
+audio track other than track 1, and the unit itself (E201 test list, step 9). Until one of those
+settles it, treat audio repitching on E201 as **unconfirmed, likely working**.
 
 ## The trig LEDs in Euclid mode (verified in the emulator, 2026-11-04)
 

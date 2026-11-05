@@ -137,7 +137,7 @@ One row per build sent to a unit; never reuse a version. Build with
 
 | Version | Source | SHA-256 of the `.syx` | What it is | Result |
 |---|---|---|---|---|
-| E201 | v0.2 as of 2026-11-04 (`e12515c` + build script) | `a17115e8fc870730fe354a069e2d83728380dd14f41447f466ddf2b8907e9406` | v0.2: the NOTES and RANDOM pages, per-track ON, phrase reset on PLAY | waiting. **Known (emulator, real DSP, 2026-11-05): audio tracks do not repitch** (research log); MIDI tracks do |
+| E201 | v0.2 as of 2026-11-04 (`e12515c` + build script) | `a17115e8fc870730fe354a069e2d83728380dd14f41447f466ddf2b8907e9406` | v0.2: the NOTES and RANDOM pages, per-track ON, phrase reset on PLAY | waiting. Audio-track repitch: **two emulator results disagree** (2026-11-05: none in the cloud; correct notes in the Mac desktop app; research log); MIDI tracks do |
 
 **What to try on E201**, in order (stop at the first failure and note what the screen shows):
 1. It boots to the main screen. SETTINGS > SYSTEM shows the OS version as E201.
@@ -150,8 +150,9 @@ One row per build sent to a unit; never reuse a version. Build with
 6. RIGHT: the RANDOM page. LOCK off, then VAR up: the riff changes on each pass.
 7. STOP, then PLAY: the riff starts from its first bar.
 8. NO, and a page key (SRC): both leave EUC+ for the stock page.
-9. On an **audio** track, by ear: the hits repitch within the scale. **Expected to fail on E201**: the
-   emulator with the real DSP shows audio tracks keep the stock pitch (research log, 2026-11-05).
+9. On an **audio** track, by ear: the hits repitch within the scale. **Unconfirmed on E201:** one
+   emulator run kept the stock pitch, a later one in digikit's desktop app on a Mac played EUC+'s
+   notes (research log, 2026-11-05). The unit decides.
 10. Power off for a few minutes, then on: it boots. The settings are back at their defaults, which is
     expected in v0.2.
 

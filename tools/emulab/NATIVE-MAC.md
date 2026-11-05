@@ -8,8 +8,9 @@ tool, cache and build in **one folder, `~/dt2lab`**: delete it and everything is
 > build E201. About 15 minutes of builds in all, then a 2-minute app build on the first launch.
 > Measured: the DSP takes **1.1 CPU seconds per audio second**, close to real time (a few short
 > dropouts a minute; `--audio-buffer 1` in step 6 trades them for latency).
-> Known: on build E201, **audio tracks keep their stock pitch** (EUC+'s notes only reach MIDI
-> tracks; being fixed), so the emulator will show that too.
+> Here, on build E201, the audio test track **does repitch** to EUC+'s notes (measured: research
+> log, 2026-11-05), unlike an earlier run in the cloud. With PTCH, RNGE and RAMT at 0 the hits still
+> cycle through the pool, 1-3-5 of the scale.
 
 ## 0. Once: Apple's command-line tools
 
