@@ -121,4 +121,6 @@ The build also cold-boots to the main screen in the emulator.
 - The EUC+ page is recognised by the stock page's label pixels. If a future stock dialog covers
   them, FUNC + AMP does the stock thing until it is gone.
 - The T-1 random gesture (FUNC + turn) and COMMIT (FUNC + YES) are not there yet.
-- Audio-track pitch output is not yet verified by ear. Confirm on hardware.
+- **Audio tracks do not repitch yet.** With the real DSP emulated, an audio track keeps its stock
+  pitch although EUC+ chooses new notes (research log, 2026-11-05). MIDI tracks play EUC+'s notes.
+  Being fixed.

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digitakt II emulator panel</title>
+<style>
+:root {
+  --bg: #1a1a1d; --body: #2a2a2e; --key: #3a3a40; --key-hi: #4a4a52; --ink: #e8e8ec; --muted: #9a9aa3;
+  --line: #45454c; --accent: #6ea0ff; --oled: #000;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, -apple-system, sans-serif; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 18px; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 14px; font-size: 13px; }
+.unit { background: var(--body); border-radius: 14px; padding: 16px; display: grid; gap: 14px; }
+.top { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .top { grid-template-columns: 1fr; } }
+canvas { width: 512px; max-width: 100%; aspect-ratio: 2 / 1; image-rendering: pixelated; background: var(--oled); border-radius: 6px; display: block; }
+.encs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; }
+.enc { display: flex; flex-direction: column; align-items: center; gap: 4px; user-select: none; }
+.knob { width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #5a5a62, #2c2c31); border: 2px solid #18181b; position: relative; cursor: ns-resize; touch-action: none; }
+.knob::after { content: ""; position: absolute; left: 50%; top: 6px; width: 3px; height: 14px; margin-left: -1.5px; background: var(--ink); border-radius: 2px; transform-origin: 50% 21px; transform: rotate(var(--a, 0deg)); }
+.enc .lbl { font-size: 12px; color: var(--muted); }
+.enc .pm { display: flex; gap: 4px; }
+.enc .pm button { padding: 2px 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.group { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; }
+.group .name { width: 100%; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+button { font: 600 12px system-ui, sans-serif; color: var(--ink); background: var(--key); border: 1px solid #18181b; border-radius: 6px; padding: 8px 10px; cursor: pointer; min-width: 44px; }
+button:hover { background: var(--key-hi); }
+button.held { outline: 2px solid var(--accent); }
+button .led { display: block; height: 4px; border-radius: 2px; margin: 0 0 5px; background: #111; }
+.trigs { display: grid; grid-template-columns: repeat(16, 1fr); gap: 5px; }
+@media (max-width: 860px) { .trigs { grid-template-columns: repeat(8, 1fr); } }
+.trigs button { min-width: 0; padding: 8px 0; }
+.side { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 860px) { .side { grid-template-columns: 1fr; } }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.card h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.mono { font: 12px ui-monospace, Menlo, monospace; }
+#midi { min-height: 40px; word-break: break-word; }
+.status { color: var(--muted); font-size: 12px; }
+input[type=range] { width: 140px; }
+a { color: var(--accent); }
+kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Digitakt II emulator panel</h1>
+  <p class="sub">digikit's emulator running the real OS, here with EUC+. Not real time: the DSP is emulated in software, so time and sound run slower than on a unit.</p>
+  <div class="unit">
+    <div class="top">
+      <canvas id="scr" width="128" height="64" aria-label="The Digitakt II screen"></canvas>
+      <div class="encs" id="encs"></div>
+    </div>
+    <div class="row">
+      <div class="group"><span class="name">Hold (click to latch)</span><span id="mods"></span></div>
+      <div class="group"><span class="name">Pages</span><span id="pages"></span></div>
+      <div class="group"><span class="name">Navigation</span><span id="nav"></span></div>
+      <div class="group"><span class="name">Transport</span><span id="transport"></span></div>
+      <div class="group"><span class="name">Modes</span><span id="modes"></span></div>
+    </div>
+    <div class="trigs" id="trigs"></div>
+  </div>
+  <div class="side" style="margin-top:14px">
+    <div class="card">
+      <h2>Sound</h2>
+      <div class="row">
+        <button id="audioBtn">Start sound</button>
+        <label>Volume <input id="vol" type="range" min="0" max="100" value="25"></label>
+        <button id="recBtn" disabled>Record</button>
+      </div>
+      <p class="status" id="aStat">Sound is off. Browsers need a click before they play anything.</p>
+      <div id="takes"></div>
+    </div>
+    <div class="card">
+      <h2>EUC+: the notes it chose (last hits)</h2>
+      <div id="eup" class="mono">none yet</div>
+      <h2 style="margin-top:12px">USB MIDI notes sent</h2>
+      <div id="midi" class="mono">none yet</div>
+      <p class="status" id="eStat"></p>
+    </div>
+  </div>
+  <p class="status">Keyboard: <kbd>Shift</kbd> holds FUNC, arrow keys, <kbd>Enter</kbd> YES, <kbd>Esc</kbd> NO, <kbd>Space</kbd> PLAY, <kbd>.</kbd> STOP. Encoders: drag up or down or scroll (<kbd>Shift</kbd> + scroll: ten ticks), or − / + (five ticks). As on the unit, stock parameters need several ticks per step, and switches such as EUC about a quarter turn. Click a knob to push it.</p>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+let KEYS = {}, LED_OF = {}, ledEls = {}, lastRev = -1, leds = '';
+
+/* ---- the screen: OLED byte (7 - y/8) + 8x, bit y % 8, y from the top ---- */
+const ctx = $('scr').getContext('2d'), img = ctx.createImageData(128, 64);
+function draw(b64) {
+  const f = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) {
+    const on = (f[(7 - (y >> 3)) + 8 * x] >> (y & 7)) & 1, i = 4 * (y * 128 + x);
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = on ? 235 : 0; img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+/* ---- keys ---- */
+const LATCH = new Set(['FUNC', 'TRK', 'PAGE']), held = new Set();
+function key(name, label) {
+  const b = document.createElement('button'), code = KEYS[name];
+  const led = document.createElement('span'); led.className = 'led'; b.append(led, label || name);
+  if (LED_OF[code] !== undefined) ledEls[code] = led;
+  if (LATCH.has(name)) {
+    b.onclick = () => { const on = !held.has(name); on ? held.add(name) : held.delete(name); b.classList.toggle('held', on); post('/api/button', { code, down: on }); };
+  } else {
+    const up = () => { if (b.dataset.down) { delete b.dataset.down; post('/api/button', { code, down: false }); } };
+    b.onpointerdown = (e) => { e.preventDefault(); b.dataset.down = 1; post('/api/button', { code, down: true }); };
+    b.onpointerup = up; b.onpointerleave = up;
+  }
+  return b;
+}
+function ledColour(v) {
+  if (!v || v === 1) return '#111';
+  const c = v & 0xf0, mode = v & 0x0f, dim = mode === 2 || mode === 6;
+  if (!c) return dim ? '#444' : '#777';
+  const r = c & 0x10 ? 255 : 0, g = c & 0x20 ? 255 : 0, b = (c & 0x40) || (c & 0x80) ? 255 : 0;
+  const k = dim ? 0.45 : 1; return `rgb(${r * k},${g * k},${b * k})`;
+}
+function showLeds() {
+  for (const [code, el] of Object.entries(ledEls)) {
+    const i = LED_OF[code], v = parseInt(leds.substr(2 * i, 2), 16);
+    el.style.background = ledColour(isNaN(v) ? 0 : v);
+  }
+}
+
+/* ---- encoders: 1-8 = A-H, 9 = LEVEL; a push is key 40 + n ---- */
+const angle = {};
+function encoder(n, label) {
+  const w = document.createElement('div'); w.className = 'enc';
+  const k = document.createElement('div'); k.className = 'knob'; k.title = 'Drag or scroll to turn; click to push';
+  const l = document.createElement('div'); l.className = 'lbl'; l.textContent = label;
+  const pm = document.createElement('div'); pm.className = 'pm';
+  const turn = (d, repeat = 1) => { if (!d) return; angle[n] = (angle[n] || 0) + d * repeat * 6; k.style.setProperty('--a', angle[n] + 'deg'); post('/api/turn', { enc: n, d, repeat }); };
+  for (const [t, d] of [['−', -1], ['+', 1]]) { const b = document.createElement('button'); b.textContent = t; b.title = 'Five ticks'; b.onclick = () => turn(d, 5); pm.append(b); }
+  let y0 = null, moved = 0, acc = 0;
+  k.onpointerdown = (e) => { y0 = e.clientY; moved = 0; acc = 0; k.setPointerCapture(e.pointerId); };
+  k.onpointermove = (e) => { if (y0 === null) return; const dy = y0 - e.clientY; acc += dy; y0 = e.clientY; moved += Math.abs(dy); const d = Math.trunc(acc / 6); if (d) { acc -= d * 6; turn(d); } };
+  k.onpointerup = () => { if (moved < 3 && n <= 8) { post('/api/button', { code: 40 + n, down: true }).then(() => setTimeout(() => post('/api/button', { code: 40 + n, down: false }), 120)); } y0 = null; };
+  k.onwheel = (e) => { e.preventDefault(); turn(e.deltaY < 0 ? 1 : -1, e.shiftKey ? 10 : 1); };
+  w.append(k, l, pm); return w;
+}
+
+/* ---- sound: stream float32 stereo 48 kHz; Record keeps a take to replay at the right speed ---- */
+let actx = null, gain = null, nextT = 0, pos = -1, rec = null, got = [], streaming = false;
+async function pumpAudio() {
+  if (!streaming) return;
+  try {
+    const r = await fetch('/api/audio?pos=' + pos), buf = await r.arrayBuffer();
+    pos = parseInt(r.headers.get('X-End'));
+    if (buf.byteLength) {
+      const f = new Float32Array(buf), n = f.length / 2, ab = actx.createBuffer(2, n, 48000);
+      const L = ab.getChannelData(0), R = ab.getChannelData(1);
+      for (let i = 0; i < n; i++) { L[i] = f[2 * i]; R[i] = f[2 * i + 1]; }
+      const s = actx.createBufferSource(); s.buffer = ab; s.connect(gain);
+      const t = Math.max(actx.currentTime + 0.05, nextT); s.start(t); nextT = t + ab.duration;
+      got.push([performance.now(), n]); if (rec) rec.push(f.slice());
+    }
+  } catch (e) {}
+  const now = performance.now(); got = got.filter(([t]) => now - t < 5000);
+  const secs = got.reduce((a, [, n]) => a + n, 0) / 48000;
+  $('aStat').textContent = `Playing live. Emulated speed about ${(secs / 5).toFixed(2)}× real time: live sound has gaps. Record a take to hear it at the right speed.`;
+  setTimeout(pumpAudio, 120);
+}
+$('audioBtn').onclick = () => {
+  if (!actx) { actx = new AudioContext({ sampleRate: 48000 }); gain = actx.createGain(); gain.connect(actx.destination); }
+  gain.gain.value = $('vol').value / 100;
+  streaming = !streaming; $('audioBtn').textContent = streaming ? 'Stop sound' : 'Start sound'; $('recBtn').disabled = !streaming;
+  if (streaming) { actx.resume(); pos = -1; pumpAudio(); } else { $('aStat').textContent = 'Sound is off.'; }
+};
+$('vol').oninput = () => { if (gain) gain.gain.value = $('vol').value / 100; };
+function wav(chunks) {
+  const n = chunks.reduce((a, c) => a + c.length, 0), out = new DataView(new ArrayBuffer(44 + 2 * n));
+  const w = (o, s) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); out.setUint32(4, 36 + 2 * n, true); w(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true);
+  out.setUint16(22, 2, true); out.setUint32(24, 48000, true); out.setUint32(28, 192000, true); out.setUint16(32, 4, true); out.setUint16(34, 16, true);
+  w(36, 'data'); out.setUint32(40, 2 * n, true);
+  let o = 44; for (const c of chunks) for (const v of c) { out.setInt16(o, Math.max(-1, Math.min(1, v)) * 32767, true); o += 2; }
+  return new Blob([out], { type: 'audio/wav' });
+}
+$('recBtn').onclick = () => {
+  if (!rec) { rec = []; $('recBtn').textContent = 'Stop recording'; return; }
+  const blob = wav(rec), secs = rec.reduce((a, c) => a + c.length, 0) / 96000; rec = null; $('recBtn').textContent = 'Record';
+  const url = URL.createObjectURL(blob), d = document.createElement('div');
+  d.innerHTML = `<p class="status">Take, ${secs.toFixed(1)} s of emulated time · <a download="emulab-take.wav" href="${url}">download</a></p>`;
+  const a = document.createElement('audio'); a.controls = true; a.src = url; d.append(a); $('takes').prepend(d);
+};
+
+/* ---- the screen, LEDs and MIDI, polled ---- */
+const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+let last = null;
+async function poll() {
+  try {
+    const s = await (await fetch('/api/state')).json();
+    if (s.rev !== lastRev) { lastRev = s.rev; draw(s.frame); }
+    leds = s.leds; showLeds();
+    if (s.eup) $('eup').textContent = s.eup.length ? s.eup.map(([t, st, ni, no, ch]) => `T${t + 1}·${st + 1}: ${ch ? NAMES[ni % 12] + (Math.floor(ni / 12) - 1) + '→' : ''}${NAMES[no % 12]}${Math.floor(no / 12) - 1}`).join('  ') : 'none yet (EUC+ is off, or no Euclid hits)';
+    else $('eup').textContent = 'not available';
+    $('midi').textContent = s.midi.length ? s.midi.map(([, n]) => NAMES[n % 12] + (Math.floor(n / 12) - 1)).join(' ') : 'none yet';
+    const now = performance.now();
+    if (last && s.elapsed != null) { const r = (s.elapsed - last.e) / 132000 / (now - last.t); $('eStat').textContent = `Emulated time runs at about ${r.toFixed(2)}× real time.`; }
+    last = { e: s.elapsed, t: now };
+  } catch (e) { $('eStat').textContent = 'Lost the emulator: is it still running?'; }
+  setTimeout(poll, 90);
+}
+
+/* ---- the keyboard ---- */
+const KB = { ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', Enter: 'YES', Escape: 'NO', ' ': 'PLAY', '.': 'STOP' };
+addEventListener('keydown', (e) => {
+  if (e.repeat || e.target.tagName === 'INPUT') return;
+  if (e.key === 'Shift') post('/api/button', { code: KEYS.FUNC, down: true });
+  else if (KB[e.key]) { e.preventDefault(); post('/api/button', { code: KEYS[KB[e.key]], down: true }); }
+});
+addEventListener('keyup', (e) => {
+  if (e.key === 'Shift') post('/api/button', { code: KEYS.FUNC, down: false });
+  else if (KB[e.key]) post('/api/button', { code: KEYS[KB[e.key]], down: false });
+});
+
+(async () => {
+  const c = await (await fetch('/api/config')).json(); KEYS = c.keys; LED_OF = c.led_of;
+  'ABCDEFGH'.split('').forEach((l, i) => $('encs').append(encoder(i + 1, l)));
+  $('encs').append(encoder(9, 'LEVEL'));
+  ['FUNC', 'TRK', 'PAGE'].forEach((k) => $('mods').append(key(k)));
+  ['TRIG', 'SRC', 'FLTR', 'AMP', 'FX', 'MOD'].forEach((k) => $('pages').append(key(k)));
+  ['LEFT', 'UP', 'DOWN', 'RIGHT', 'NO', 'YES'].forEach((k) => $('nav').append(key(k, { LEFT: '◀', UP: '▲', DOWN: '▼', RIGHT: '▶' }[k])));
+  ['RECORD', 'PLAY', 'STOP'].forEach((k) => $('transport').append(key(k, { RECORD: '● REC', PLAY: '▶ PLAY', STOP: '■ STOP' }[k])));
+  ['KEYBOARD', 'PTN', 'SONG', 'TEMPO', 'SETTINGS', 'PRESET'].forEach((k) => $('modes').append(key(k)));
+  for (let i = 1; i <= 16; i++) $('trigs').append(key('T' + i, String(i)));
+  poll();
+})();
+</script>
+</body>
+</html>

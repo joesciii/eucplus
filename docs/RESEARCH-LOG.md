@@ -259,6 +259,25 @@ checked here by drawing from `ev_draw` and reading the frame:
   buf2)`, vtable `0x4021cff0`). The frame `ev_draw` gets has vtable `0x4021cff8` and a second
   pointer at `+0x14` (`0x40966ad8`). They are probably two classes; not followed.
 
+## Audio tracks do not repitch from EUC+'s note (verified with the real DSP, 2026-11-05)
+
+Tested in digikit's coupled emulator (ColdFire and the real SHARC DSP), with a +Drive card holding a
+1 kHz sine (digikit's `dt2_sample_check` card; the card's project plays it on track 1), build E201
+loaded as a file (a coupled cold boot, the DSP kept), track 1 an audio track with EUC on (hits at
+steps 0, 7, 14). Pitch measured by FFT of the captured PCM (`pcm.tap capture`):
+- **Control:** the track's NOTE set to 64 (poked at `+1157`): the trig sounds at 1260 Hz (all the
+  energy there), against 1000 Hz at NOTE 60. The method sees a repitch.
+- **EUC+ off:** 1000 Hz throughout; EUC+'s log: note 60 → 60.
+- **EUC+ on** (SCL IONI, ROOT C): EUC+'s log shows notes 59, 60, 62, 64 written to the event's
+  `+38`, but the sound stays at **1000 Hz in every window**; energy at 944 / 1122 / 1260 Hz about
+  0.02 / 0.006 / 0 of that at 1000 Hz.
+
+**So on audio tracks the voice's pitch does not come from the event's `+38` as it stands after the
+fire.** It comes from the track's NOTE by another path. On MIDI tracks `+38` is what is sent (the
+e2e test). The fire copies `+1157` into `+38` at `0x400d6d3c` (audio) and `0x400d71ea` (MIDI). Other
+readers of `+1157`: `0x4002e3a4`, `0x40053db6`, `0x40058c32`, `0x4012cd6a`, `0x4013a15e` (not yet
+followed). **Open:** find what the audio voice's pitch is computed from, and where EUC+ can set it.
+
 ## The trig LEDs in Euclid mode (verified in the emulator, 2026-11-04)
 
 Read with digikit's `leds.get` (one byte per LED; index = digikit's `devices/digitakt-ii-leds.toml`
