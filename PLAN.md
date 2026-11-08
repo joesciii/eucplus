@@ -4,7 +4,7 @@ Extending the Digitakt II's Euclidean sequencer with **EUC+**, a Torso-T-1-style
 generated notes, phrases, lockable random, later groove and voicing). It is entered from the stock
 Euclid menu and never replaces the stock mode.
 
-Last updated: 2026-11-03. Target: Digitakt II **OS 1.17** only.
+Last updated: 2026-11-08. Target: Digitakt II **OS 1.17** only.
 
 ## Where things stand
 
@@ -81,22 +81,50 @@ Addresses moved to `os117.h`; a host UI test and `tools/host_tests.sh`; `-Werror
 
 ## v0.3 tasks
 
-1. **Storage:** decide where the settings live (per pattern, preferred, or `core_kitdata`), find
-   free bytes, and load / save with the project. Until then settings reset at power-on.
+1. **Storage:** decide where the settings live, and load / save them. Until then settings reset at
+   power-on. **Leaning (2026-11-08): keep project files untouched**, so that a future official OS
+   never meets EUC+'s bytes: a separate file, or `core_kitdata` if it turns out to sit outside the
+   project data (check where Elekloader keeps it). Spare bytes inside each pattern are no longer the
+   preference. Your decision.
 2. **GROOVE page:** PROB (skip a hit: clear the event), ACC / GRV (velocity byte `+39`), REP / RTIM /
    RAMP (find the retrig lock slots, research log "Still to find" 4).
 3. The T-1 random gesture: hold FUNC and turn a parameter to set its random amount.
 4. Keep the end-to-end test driving the real UI for each new parameter.
 5. From the survey (docs/EXTENDED-EUCLID.md, section 5), in this order:
-   - Tell the SEQUENCER page from firmware state: the top view's vtable and page number
-     (`Brain + 0x40`, a page view's slot `+0x88`), replacing the pixel signature; step aside when a
-     dialog is on top.
+   - Tell the SEQUENCER page from firmware state: the top view's vtable (`Brain + 0x40`, the last
+     node of its view list), replacing the pixel signature; step aside when a dialog is on top.
+     Mezclando does exactly this to recognise the main screen (`0x40216F14`); we need the SEQUENCER
+     page's vtable, found in the emulator.
+   - **Screens, tier B** (decided 2026-11-08, below): the firmware's own knob and toggle icons through
+     its blit (`0x40114168`), as Mezclando blits the mixer's MIDI icon. Find the icon objects from the
+     mixer's drawing routine (`0x40075fa2`). Also measure text with `font_of` (`0x40114670`) and its
+     width table instead of drawing into a scratch Bitmap.
    - A stock-vs-EUC+ screen comparison in the e2e test (the same keys on both images, frames
      identical until the second FUNC + AMP).
    - A bit-exact engine regression check against a git revision.
-   - A four-character OS version per hardware test build.
-   - Later, optional: the firmware's own knob icons (tier B); EUC+ as a second stock SEQUENCER page
-     (tier C, with storage).
+   - ~~A four-character OS version per hardware test build~~ (done: `EUP_OS_VERSION`, E201).
+6. When EUC+ starts calling firmware setters (storage), do the work in `ev_tick` under a busy guard
+   and keep `ev_key` / `ev_enc` to recording input: a firmware call can run a nested UI tick
+   (Mezclando's structure).
+
+**Screens: decided 2026-11-08.** Tiers **A + B**: EUC+ draws its own pages in the stock layout (A) and
+uses the firmware's own fonts and icons by calling it at run time (B). Tier **C** (EUC+ as a real stock
+SEQUENCER page) stays an optional future route: it needs EUC+'s values in the project's kit or pattern
+data, which the storage lean above avoids. Nothing is ever copied out of the firmware: EUC+ either
+draws a look-alike with its own code or calls the firmware's routines with its own fonts and icons, so
+the `.elemod` holds only addresses (docs/EXTENDED-EUCLID.md, "The EUC+ screens").
+
+## v0.4 leads
+
+- **COMMIT** through the firmware's own objects, not raw bytes: a track object points to its lock and
+  note lists (Mezclando: `((void **)track)[11]`, `[12]`), data objects have a getter (vtable `+0x28`)
+  and a change notify (`+0x10`), and the stock paste records the firmware's own undo, so a COMMIT
+  could be undone with stock UNDO. Any data change clears that undo.
+- **Pool keyboard LEDs:** `led_pulse` (`0x40133E58`: LED, hold time, colour) with the track-to-LED
+  map `0x40030A06`, on plain core-dt2 1.0.
+
+All second-hand (docs/EXTENDED-EUCLID.md, section 5): each goes into docs/RESEARCH-LOG.md, checked in
+the emulator, before EUC+ relies on it.
 
 ## Flashing a test build
 
@@ -165,8 +193,9 @@ Photos, or Elek View screen captures, of steps 3, 4 and 6 help.
 
 - **Hardware tests** when a build is ready: flash with Elektron Transfer and report back (photos of
   the screen help). **Before the first flash, rehearse recovery** ("Flashing a test build", step 1).
-- **Decisions:** ~~ON control~~ (decided: its own on/off control on the page). **Next:** the storage
-  location (per pattern or per kit, v0.3).
+- **Decisions:** ~~ON control~~ (decided: its own on/off control on the page). ~~Screens~~ (decided:
+  tiers A + B, C optional). **Next:** the storage location (v0.3; leaning towards keeping project
+  files untouched).
 
 ## Risks
 

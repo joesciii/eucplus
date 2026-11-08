@@ -155,13 +155,22 @@ the plain drawer with the menus' 6-pixel font record. All drawing goes through a
 text callbacks), so `test/ui_host_test.c` renders the same code on the host and checks where things
 are. Firmware addresses are in `os117.h`.
 
-Later, two steps closer to stock (not done):
-- **B:** blit the firmware's own knob and toggle icons (its icon strips, `0x40114168`), once they are
-  found on the Digitakt II (found on the Digitone II, "Prior art" below).
-- **C:** make EUC+ a second page of the stock SEQUENCER view (a `ParameterPageView`, as digikit's
-  effect pages are): the firmware would draw it, and the second [FUNC] + [AMP] would be its own
-  page flip. It needs page and parameter rows whose values live in the kit, so it goes with the
-  storage decision (v0.3).
+**Nothing is copied from the firmware.** EUC+ gets the stock look in two ways: it draws look-alikes
+with its own code (the knobs, toggles, title bar and page box, from geometry measured on the stock
+pages), or it calls the firmware's own routines at run time with the firmware's own fonts (and, in
+tier B, icons), which stay in the OS the mod is installed on. The `.elemod` holds only addresses;
+`tools/check_build.py` checks that no run of stock bytes is in it.
+
+Two steps closer to stock. **Decided 2026-11-08: A (above) + B; C stays an optional future route.**
+- **B (planned, v0.3):** blit the firmware's own knob and toggle icons (its icon strips, `0x40114168`).
+  Found on the Digitone II ("Prior art" below); on the Digitakt II, Mezclando blits the mixer's MIDI
+  icon with the same routine (`(bmp, icon, centre x, y, 1)`, icon object `0x44F35FA0`), and the
+  mixer's drawing routine (`0x40075fa2`) is the lead to the knob and fader icons.
+- **C (optional, later):** make EUC+ a second page of the stock SEQUENCER view (a `ParameterPageView`,
+  as digikit's effect pages are): the firmware would draw it, and the second [FUNC] + [AMP] would be
+  its own page flip. It needs page and parameter rows whose values live in the kit or pattern, i.e.
+  EUC+'s settings inside the project data. The storage lean (keep project files untouched, so a
+  future official OS never meets EUC+'s bytes) rules that out for now.
 
 ### Engine
 
@@ -185,9 +194,11 @@ A general `seq-events-dt2` (the mk1's event API) can wrap these hooks later, for
   `note = NOTE + ROOT + scale[degree mod n] + 12·(degree div n)`, folded into 36–84 on audio tracks. On audio tracks this
   pitches the sample by semitones. On MIDI tracks it is the real note, with NOT2–4 offsets for VOIC.
 - **Storage:** about 24 bytes per track (pool mask 2, 12 params, random amounts and lock bits)
-  plus 16 B × assigned sequences. Per-pattern storage is the target, so it follows patterns as
-  stock Euclid does. Whether there is room is a phase-1 question. The fallback is a compact
-  layout in `core_kitdata` (191 B per kit, shared by all mods), with sequences regenerated from SEED.
+  plus 16 B × assigned sequences, with sequences regenerated from SEED. Per-pattern storage would
+  follow patterns as stock Euclid does, but puts EUC+'s bytes in the project, where a future official
+  OS could use the same bytes for something else. **Leaning (2026-11-08): keep project files
+  untouched**: a separate file, or `core_kitdata` (191 B per kit, shared by all mods) if it sits
+  outside the project data (to check). Not decided.
 
 ### Open questions
 1. ~~Do Euclid hits take the grid fire path?~~ **Yes** (verified: same fire functions; the step read is
@@ -197,7 +208,7 @@ A general `seq-events-dt2` (the mk1's event API) can wrap these hooks later, for
 4. ~~Whether the SEQUENCER view can be identified, and whether a second [FUNC] + [AMP] is free there~~
    **Yes, free** (identical frames). The page is recognised by its label pixels in `ev_draw`; the view
    object itself was not found (research log, "v0.2: the UI").
-5. Free per-pattern bytes for EUC+ state (v0.3).
+5. Where EUC+'s settings are saved (v0.3; leaning towards outside the project data, "Storage" above).
 6. Sub-step timing for PACE and micro-timing offsets on generated repeats (later).
 7. ~~The transport state~~ **`0x43164f94`**: 0 stopped, 1 playing, 2 paused. STOP then PLAY restarts the phrase.
 8. Writing notes on steps that have p-locks (the lock list at `pattern + 27216`).
@@ -233,6 +244,7 @@ Digitakt mk1 mod for its structure. Addresses below are those projects' findings
 | [naturarum/dn2-cfw](https://github.com/naturarum/dn2-cfw) T5.0 | DN2 1.12 | Every stock per-parameter glyph is a frame of an icon strip (`std::vector<Bitmap>`), picked by value (17 fonts, 142 strips); each parameter view has a list of page ids (the Euclid page is id 3 on the DN2) |
 | [complex-ping/overtone](https://github.com/complex-ping/overtone) | DN2 1.12 (binary patcher) | Finished text-grid pages with small graphics (step bars); no UI source |
 | [soejrd/digisophie](https://github.com/soejrd/digisophie) (Digitone port's overlay) | DT1 / DN1 | Gates its overlay on firmware state (brain → screen → shown view), never pixels; redraws only when what it shows changed; yields to stock toasts; per-OS address headers; strict builds |
+| [Lucioic/mezclando](https://github.com/Lucioic/mezclando) 1.0.0 (read 2026-11-08, `c3f56b4`) | DT2 1.17 (core-dt2 1.0 events only, no sites; GPL-3.0) | A live pattern-mixing mode on SONG. The top view's vtable to recognise screens; the firmware's own data objects and setters (project, pattern, track, kit, sound; native copy, paste and undo); trig LEDs through a firmware call; a firmware icon blitted on the DT2; fonts measured by their width table; input queued and handled in `ev_tick` under a busy guard; screens designed as 128 × 64 text art. Details below |
 | [70b185/Aggregat](https://github.com/70b185/Aggregat) | all Elektron boxes (an index, not a mod) | About 50 rules for agents, each from a community incident (`hardware/AGENT-RULES.md`); per-device facts with evidence tags (`hardware/devices/digitakt-2.md`); a feature-overlap list; an open research map. Adopted from it: the ColdFire encoding and no-firmware-bytes build checks (A42, B7), controls for checks (C8), and the flash procedure in PLAN.md (A2-A4, A11, A12, A17, A23, A36, A40, G5, G6) |
 
 **Sequencer prior art** (from Aggregat's feature-overlap list):
@@ -271,6 +283,48 @@ second TRIG page is the closest model for tier C above.
 - **Elsewhere:** a core-dt2 1.1 with key LEDs (`ev_key_leds`), frame-time parameter values and
   kit / project storage exists in toonst's Elekloader fork (not upstream on 2026-11-03). Relevant to
   v0.3 storage.
+
+**Leads from Mezclando (DT2 1.17, second-hand, not yet checked here).** From `src/mezclando.c` at
+`c3f56b4`. Addresses and methods only: its code is GPL-3.0 and is not copied into EUC+. Each goes into
+docs/RESEARCH-LOG.md, checked in the emulator, before EUC+ uses it.
+- **Screens from firmware state:** the top view is the last node of the `std::list` at `Brain + 0x40`
+  (sentinel `+0x14`, `{next, prev, view}`); its vtable tells screens apart: `0x40216F14` the main
+  screen (a help-bubble view, when no menu is open), `0x401F8A18` the locked global mute (FUNC + TRK).
+  For EUC+: find the SEQUENCER page's vtable the same way (PLAN.md v0.3, 5).
+- **Context and data objects:**
+  - `0x40198B7E` the project (EUC+ calls it the sequencer context);
+  - `0x40041D18(project)` "project settings" (global mutes; EUC+ reads the active track through it);
+  - `0x4019995C` the sequencer states, `0x400F55E8(states)` the active pattern's index;
+  - `0x40041D40(project, n)` a pattern, `0x4003F304(pattern, t)` its track (vtable `0x401F6204`);
+    a track's words 11 and 12 point to its lock and note lists;
+  - `0x40041D24(project)` the kit array (vtable `0x401F2368`; slot `+0x34` the active kit, `+0x30`
+    pattern n's kit, `+0x6C` returns `0x80` in PERFORM KIT mode);
+  - a kit: Track Levels s16 × 16 at `+0x14` (0-0x7F00), the MIDI-track mask u16 at `+0x552E`;
+  - `0x40035CCA` / `0x40035CF6(kitarray, t)` a track's sound (0x450 bytes, machine at `+0xA2`) / MIDI
+    preset (0xF6 bytes); `0x4003618C(kitarray, t)` is it a MIDI track;
+  - on these data objects, vtable `+0x28` returns the data and `+0x10` notifies a change (the
+    firmware then updates its mirror and resends to the DSP).
+- **Writing through the firmware:** the Track Level setter `0x4003783C(kitarray, t, level, 1)`
+  (clamps, writes, notifies, sends MIDI CC); track copy `0x4005819A`, paste `0x400582A4(track, 1)`
+  (1 records the stock undo), undo `0x400573A0(track, 2)`; pattern copy / paste `0x40047934` /
+  `0x4004A572`; set machine `0x40036798`; global mute `0x4004B08A` / `0x4004E0DC`. Any data change
+  clears the stock undo. Relevant to COMMIT (PLAN.md, v0.4 leads).
+- **LEDs:** `0x40133E58(led, hold, value)` shows a value instead of the LED's own for `hold` LED-timer
+  ticks (0 gives it back); `0x40030A06(t)` maps a track to its trig LED; colours `0x31` (blue on the
+  unit), `0x1A`, `0x01` off. Relevant to the pool keyboard (v0.4).
+- **Drawing:** `0x40114670(font object)` returns the font record, whose word 2 is a table of glyph
+  widths (text width = sum of width + 1, less 1), drawn with `drawstr` (`0x40113D60`). This explains
+  why the narrow font object drew nothing when passed to `drawstr` directly (research log). Icons:
+  `0x40114168(bmp, icon, centre x, y, 1)`, the mixer's MIDI icon `0x44F35FA0`, from the mixer's
+  drawing routine `0x40075fa2` (tier B).
+- **Input:** `ev_key` / `ev_enc` only queue input; `ev_tick` does the work under a busy guard,
+  because a firmware call can run a nested UI tick. Key states: bit 0 down, 2 FUNC held, 3 auto-repeat
+  (5: a quick re-press). It replays stock combinations by calling the stock key dispatch
+  (`0x40030BD0`) with a made-up event, and rewrites an event's FUNC bit before stock reads it.
+- **Screen art:** the screens are designed as 128 × 64 text (`art/screen.txt`) and converted to a
+  bitmap header by a script: designs a reviewer can read in a git diff.
+- Its README says SETTINGS > SYSTEM "may show" its version label (MZ10); in our emulator E201 did not
+  show there (research log), so that is still open.
 
 **Methods worth keeping (adopted in v0.2 where marked).**
 - Firmware addresses in one header per OS (**adopted:** `os117.h`).
