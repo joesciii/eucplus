@@ -1,4 +1,4 @@
-# Digitorsion
+# EUC+ (repository: eucplus)
 
 EUC+: a Torso-T-1-style extension of the Elektron Digitakt II's stock Euclidean sequencer, built as
 an Elekloader mod for **OS 1.17**. Start with [PLAN.md](PLAN.md): it has the status, the next tasks

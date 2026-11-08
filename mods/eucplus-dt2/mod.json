@@ -4,7 +4,7 @@
  "license": "GPL-2.0-or-later",
  "title": "EUC+",
  "category": "Sequencer",
- "author": "Digitorsion",
+ "author": "joesciii",
  "description": "EUC+ v0.2: T-1-style generated notes on top of the stock Euclidean sequencer, off by default on every track. A second FUNC + AMP on the stock Euclidean page opens the EUC+ pages (NOTES, RANDOM), with a per-track ON control. On Euclid hits without parameter locks, audio and MIDI tracks play notes from a pool of scale degrees in the pattern's KB SCALE and ROOT NOTE (or EUC+'s own), moved by a phrase shape and a seeded, lockable random sequence; the phrase restarts on PLAY. Settings in RAM.",
  "device": "digitakt-mk2",
  "os": "1.17",

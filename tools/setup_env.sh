@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rebuild the Digitorsion working environment in a fresh cloud session (about 10 minutes).
+# Rebuild the EUC+ working environment in a fresh cloud session (about 10 minutes).
 #
 #   bash tools/setup_env.sh [WORK_DIR]          (default: /tmp/digitorsion-work)
 #
@@ -92,7 +92,7 @@ mkdir -p "$WORK/builds"
 bash "$REPO/tools/build_eucplus.sh" "$WORK"
 
 cat > "$WORK/env.sh" <<EOF
-# source this: the paths the Digitorsion tools use
+# source this: the paths the EUC+ tools use
 export DIGITORSION_REPO="$REPO"
 export DIGITORSION_WORK="$WORK"
 export ELEKLOADER="$WORK/elekloader"

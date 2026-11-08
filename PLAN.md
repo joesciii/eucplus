@@ -1,4 +1,4 @@
-# Digitorsion: plan
+# EUC+: plan
 
 Extending the Digitakt II's Euclidean sequencer with **EUC+**, a Torso-T-1-style layer (in-scale
 generated notes, phrases, lockable random, later groove and voicing). It is entered from the stock

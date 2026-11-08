@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Digitorsion emulab entrypoint: set up (first run), then run digikit's Digitakt II emulator with
+# EUC+ emulab entrypoint: set up (first run), then run digikit's Digitakt II emulator with
 # EUC+ and the browser panel on port 8080.
 #
 #   emulab start   the real DSP, with sound (the default)

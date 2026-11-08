@@ -1,4 +1,4 @@
-# Digitorsion emulab: digikit's Digitakt II emulator (the real OS, with the real DSP for sound) and a
+# EUC+ emulab: digikit's Digitakt II emulator (the real OS, with the real DSP for sound) and a
 # browser front panel, all inside one container. Nothing is installed on the host but the image and
 # one volume. See tools/emulab/README.md.
 #
